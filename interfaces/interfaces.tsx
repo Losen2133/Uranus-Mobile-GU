@@ -1,0 +1,196 @@
+import { TempUnit } from "@/utils/stringUtils";
+
+export interface OrganizationMember {
+  id: number;
+  name: string;
+  email: string;
+  role_id: number;
+  role: string;
+  active: boolean;
+}
+
+export interface OrganizationData {
+  id: number;
+  owner_id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  members: OrganizationMember[];
+}
+
+export interface OrganizationFetchResponse {
+  status: string;
+  data: OrganizationData[];
+}
+
+export interface OrgMembersFetchResponse {
+  status: string;
+  data: OrganizationMember[];
+}
+
+export interface UserData {
+    id: number;
+    name: string;
+    email: string;
+    email_verified_at: string;
+    created_at: string;
+    updated_at: string;
+    onboarding_mobile: boolean;
+    onboarding_webapp: boolean;
+    settings: UserSettings;
+
+}
+
+export interface UserSettings {
+  temp_unit: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// export interface LivestockProfileData {
+//   id: number;
+//   organization_id: number;
+//   added_by: number;
+//   type: string;
+//   speciesName: string;
+//   data: LivestockPlantTypeData | LivestockFishTypeData;
+//   description: string;
+//   created_at: string;
+//   updated_at: string;
+// }
+
+// export interface LivestockData {
+//   id: number;
+//   organization_id: number;
+//   added_by: number;
+//   type: string;
+//   speciesName: string;
+//   data: LivestockPlantTypeData | LivestockFishTypeData;
+//   description: string;
+//   created_at: string;
+//   updated_at: string;
+// }
+
+export interface LivestockPlantTypeData {
+  harvest_days: number;
+  phase: "nursery" | "growbed";
+  phase_changed_on: string;
+  ideal_temp: {
+    temp_unit: TempUnit;
+    min: number;
+    max: number;
+  };
+  ph_range: {
+    min: number;
+    max: number;
+  };
+  nursery_days: number;
+}
+
+export interface LivestockFishTypeData {
+  growth_days: number;
+  age: number;
+  // harvestWeight: number;
+  ideal_temp: {
+    temp_unit: TempUnit;
+    min: number;
+    max: number;
+  };
+  ph_range: {
+    min: number;
+    max: number;
+  };
+}
+
+interface BaseLivestockData {
+    id: number;
+    organization_id: number;
+    added_by: {
+      id: number,
+      name: string,
+      email: string
+    }
+    species_name: string;
+    livestock_name: string;
+    description: string;
+    created_at: string;
+    updated_at: string;
+    harvested: boolean;
+    image_url: string;
+    date_of_harvest: string;
+}
+
+export interface PlantLivestockData extends BaseLivestockData {
+    type: "plant";
+    data: LivestockPlantTypeData;
+}
+
+export interface FishLivestockData extends BaseLivestockData {
+    type: "fish";
+    data: LivestockFishTypeData;
+}
+
+export type LivestockData =
+    | PlantLivestockData
+    | FishLivestockData;
+
+interface BaseLivestockProfileData {
+    id: number;
+    organization_id: number;
+    added_by: number;
+    species_name: string;
+    description: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PlantLivestockProfileData extends BaseLivestockProfileData {
+    type: "plant";
+    data: LivestockPlantTypeData;
+}
+
+export interface FishLivestockProfileData extends BaseLivestockProfileData {
+    type: "fish";
+    data: LivestockFishTypeData;
+}
+
+export type LivestockProfileData = 
+    | PlantLivestockProfileData
+    | FishLivestockProfileData;
+
+export interface LiveStockLogs {
+  id: number;
+  livestock_id: number;
+  data: JSON;
+  recorded_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SensorData {
+  id: number;
+  organization_id: number;
+  name: string;
+  type: string;
+  status: string;
+  metadata: {
+    chip_id: string;
+    device_id: string;
+    device_model: string;
+    firmware_version: string;
+  };
+  created_at: string;
+  updated_at: string;
+  purpose: string;
+  sensor_type: string;
+  registration_status: string;
+  registered_at: string;
+  last_seen_at: string;
+  is_offline: boolean;
+}
