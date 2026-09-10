@@ -1,4 +1,4 @@
-import { LivestockData, LivestockProfileData, OrganizationData, OrganizationMember, Role, SensorData, UserSettings } from "@/interfaces/interfaces";
+import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationData, OrganizationMember, Role, SensorData, UserSettings } from "@/interfaces/interfaces";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
@@ -1176,5 +1176,90 @@ export async function fetchSensorData(
         if(errorSetter) errorSetter(error.message || 'An error occurred');
     } finally {
         if(loadingSetter) loadingSetter(false);
+    }
+}
+
+export async function fetchLivestockLogData(
+    loadingSetter: Dispatch<SetStateAction<boolean>>,
+    errorSetter: Dispatch<SetStateAction<string | null>>,
+    livestockId: number,
+    livestockLogsSetter: Dispatch<SetStateAction<LivestockLogData[]>>
+) {
+    try {
+        if (loadingSetter) loadingSetter(true)
+        if (errorSetter) errorSetter(null)
+
+        const token = await SecureStore.getItemAsync('userToken');
+
+        if(!token) {
+            throw new Error('No authorization token found. Please log in.');
+        }
+
+        const livestockLogsResponse = await fetch(URANUS_URL + `/api/livestocks/${livestockId}/logs`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (livestockLogsResponse.status === 401) {
+            throw new Error('Session expired. Please log in again.');
+        }
+
+        if (!livestockLogsResponse.ok) {
+            console.log("Reached Here")
+            console.log(await livestockLogsResponse.json())
+            throw new Error('Failed to load secure data.');
+        }
+
+        const livestockLogsJson = await livestockLogsResponse.json();
+        livestockLogsSetter(livestockLogsJson.data)
+        console.log(livestockLogsJson.data[0])
+    } catch (error: any) {
+        if(errorSetter) errorSetter(error.message || 'An error occurred');
+    } finally {
+        if(loadingSetter) loadingSetter(false);
+    }
+}
+
+export async function resolveConcernLog(
+    livestockId: number,
+    logId: number | undefined,
+    actiontaken: string | undefined,
+    onResolution: () => void | Promise<void>
+) {
+    try {
+        const token = await SecureStore.getItemAsync('userToken');
+
+        if (!token) {
+            throw new Error('No authorization token found. Please log in.');
+        }
+
+        const response = await fetch(URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`, {
+            method: 'PATCH',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                data: {
+                    action_taken: actiontaken
+                }
+            })
+        });
+
+        const data = await response.json();
+        console.log(data);
+
+        if (!response.ok) {
+            throw new Error(data.message ?? 'Failed to resolve concern');
+        }
+
+        await onResolution();
+    } catch (error) {
+        throw new Error(error as any);
     }
 }

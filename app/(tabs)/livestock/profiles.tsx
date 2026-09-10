@@ -125,33 +125,33 @@ export default function LivestockProfilesScreen() {
                     </Input>
                 </Box>
                 <Box className="border border-outline-300 border-white h-8 rounded-md justify-center px-3">
-                        <Picker
-                            selectedValue={selectedType}
-                            onValueChange={(value) => {
-                                setSelectedType(value);
-                            }}
-                            dropdownIconColor="white"
-                            style={{
-                                color: "white",
-                                marginHorizontal: -10,
-                            }}
-                        >
-                            <Picker.Item
-                                label="All Livestock"
-                                value="all"
-                            />
+                    <Picker
+                        selectedValue={selectedType}
+                        onValueChange={(value) => {
+                            setSelectedType(value);
+                        }}
+                        dropdownIconColor="white"
+                        style={{
+                            color: "white",
+                            marginHorizontal: -10,
+                        }}
+                    >
+                        <Picker.Item
+                            label="All Livestock"
+                            value="all"
+                        />
 
-                            <Picker.Item
-                                label="Plants"
-                                value="plant"
-                            />
+                        <Picker.Item
+                            label="Plants"
+                            value="plant"
+                        />
 
-                            <Picker.Item
-                                label="Fish"
-                                value="fish"
-                            />
-                        </Picker>
-                    </Box>
+                        <Picker.Item
+                            label="Fish"
+                            value="fish"
+                        />
+                    </Picker>
+                </Box>
                 {loading ? (
                     <LoaderDisplay
                         type="loading"

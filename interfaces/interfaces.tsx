@@ -194,3 +194,46 @@ export interface SensorData {
   last_seen_at: string;
   is_offline: boolean;
 }
+
+interface BaseLivestockLogsData {
+  id: number;
+  livestock_id: number;
+  image_url: string;
+  recorded_by: {
+    id: number;
+    name: string;
+  };
+  resolved_by: {
+    id: number;
+    name: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LivestockLogsLogTypeData {
+  title: string;
+  description: string;
+}
+
+export interface LivestockLogsConcernTypeData {
+  title: string;
+  description: string;
+  severity: 'low' | 'moderate' | 'high' | 'critical';
+  status: 'open' | 'closed';
+  action_taken: string;
+}
+
+export interface LogLivestockLogData extends BaseLivestockLogsData {
+  type: 'log';
+  data: LivestockLogsLogTypeData;
+}
+
+export interface ConcernLivestockLogData extends BaseLivestockLogsData {
+  type: 'concern';
+  data: LivestockLogsConcernTypeData;
+}
+
+export type LivestockLogData = 
+  | LogLivestockLogData
+  | ConcernLivestockLogData

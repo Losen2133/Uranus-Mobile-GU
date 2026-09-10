@@ -1,5 +1,5 @@
 import useAppToast from "@/components/AppToast";
-import { livestockDescriptionField, livestockTypeField, numberField, speciesNameField } from "@/components/LivestockFields";
+import { livestockDescriptionField, livestockTypeField, numberField, speciesNameField } from "@/components/FormFields";
 import LoaderDisplay from "@/components/LoaderDisplay";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Button, ButtonText } from "@/components/ui/button";

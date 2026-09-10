@@ -1,5 +1,5 @@
 import useAppToast from "@/components/AppToast";
-import { imageField, imagePickerModal, livestockDescriptionField, livestockNameField, livestockProfilePickerField, livestockTypeField, numberField, speciesNameField, useLivestockProfileField } from "@/components/LivestockFields";
+import { imageField, imagePickerModal, livestockDescriptionField, livestockNameField, livestockProfilePickerField, livestockTypeField, numberField, speciesNameField, useLivestockProfileField } from "@/components/FormFields";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";

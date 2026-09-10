@@ -190,6 +190,43 @@ export const livestockNameField = (
     )
 }
 
+export const actionTakenField = (
+    actionTaken: string | undefined,
+    actionTakenSetter: Dispatch<SetStateAction<string | undefined>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Action Taken</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                    type="text"
+                    placeholder="Ex: The livestock has been... | In order to..."
+                    placeholderTextColor={'gray'}
+                    value={actionTaken}
+                    onChangeText={(text) => actionTakenSetter(text)}
+                    numberOfLines={4}
+                    className="h-25 pt-3"
+                    style={{ textAlignVertical: 'top' }}
+                />
+            </Input>
+            <FormControlError>
+                <FormControlErrorIcon
+                    as={AlertCircleIcon}
+                    className='text-destructive'
+                />
+                <FormControlErrorText className='text-destructive'>
+                    Please fill out this field
+                </FormControlErrorText>
+            </FormControlError>
+        </FormControl>
+    )
+}
+
 export const livestockDescriptionField = (
     description: string,
     descriptionSetter: Dispatch<SetStateAction<string>>,

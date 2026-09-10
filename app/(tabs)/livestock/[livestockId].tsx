@@ -20,7 +20,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { LivestockData } from "@/interfaces/interfaces";
 import { fetchIndividualLivestock, harvestLivestock, proceedToNextPhase } from "@/utils/apiFetch";
-import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Menu } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { ScrollView } from "react-native";
@@ -45,6 +45,7 @@ export default function LivestockDetailPage() {
     const [isChangingPhase, setIsChangingPhase] = useState(false);
     const [isHarvesting, setIsHarvesting] = useState(false);
     const { showToast } = useAppToast();
+    const router = useRouter();
 
     useFocusEffect(
         useCallback(() => {
@@ -188,6 +189,21 @@ export default function LivestockDetailPage() {
                         >
                             Harvest Livestock
                         </ActionsheetItemText>
+                    </ActionsheetItem>
+                    <ActionsheetItem
+                        onPress={() => {
+                            setShowActionsheet(false);
+                            router.push({
+                                pathname: '/livestock/logs',
+                                params: {
+                                    livestockId: livestockData?.id,
+                                    isHarvested: livestockData?.harvested?.toString(),
+                                }
+                            })
+                        }}
+                        className="m-2 bg-white"
+                    >
+                        <ActionsheetItemText className="text-black">View Logs</ActionsheetItemText>
                     </ActionsheetItem>
                 </ActionsheetContent>
             </Actionsheet>
