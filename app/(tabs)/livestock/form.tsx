@@ -284,7 +284,7 @@ export default function LivestockFormPage() {
                         <Divider />
                         {livestockType && (
                             <>
-                                {imageField(image?.uri ?? null, setIsImagePickerOpen)}
+                                {imageField(image?.uri ?? null, setIsImagePickerOpen, "Livestock Image")}
                                 <Divider />
                                 {livestockNameField(
                                     livestockName,
@@ -618,7 +618,7 @@ export default function LivestockFormPage() {
                                             });
                                         }
 
-                                        router.dismissTo("/(tabs)/livestock");
+                                        router.back()
                                     },
 
                                     selectedOrganizationId,
@@ -658,7 +658,7 @@ export default function LivestockFormPage() {
                                             });
                                         }
 
-                                        router.dismissTo("/(tabs)/livestock");
+                                        router.back()
                                     },
 
                                     selectedOrganizationId,

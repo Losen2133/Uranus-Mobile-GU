@@ -4,6 +4,7 @@ import OrgModalAction from "@/components/OrgModalAction";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -126,6 +127,9 @@ export default function OrganizationsScreen() {
         ].filter(section => section.data.length > 0);
     }, [organizations, query, fetchedUserInfo?.id]);
 
+    const isOrganizationsEmpty = organizations.length === 0;
+    const isFilteredEmpty = filteredOrganizations.length === 0;
+
     return(
         <>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -133,7 +137,9 @@ export default function OrganizationsScreen() {
                     space="md"
                 >  
                     <Box>
-                        <Input>
+                        <Input
+                            isDisabled={isOrganizationsEmpty}
+                        >
                             <InputSlot>
                                 <InputIcon as={SearchIcon} />
                             </InputSlot>
@@ -156,6 +162,14 @@ export default function OrganizationsScreen() {
                             type="error"
                             message={error}
                         />
+                    ) : isOrganizationsEmpty ? (
+                        <Center className="flex-1">
+                            <Text>There are no organizations available</Text>
+                        </Center>
+                    ) : isFilteredEmpty ? (
+                        <Center className="flex-1">
+                            <Text>No organizations match your search or filter.</Text>
+                        </Center>
                     ) : (
                         <SectionList
                             sections={sections}
@@ -213,7 +227,6 @@ export default function OrganizationsScreen() {
                                                         key="Edit"
                                                         textValue="Edit"
                                                         onPress={() => {
-                                                            console.log("Edit ", item.name)
                                                             setToEditOrg(item)
                                                             setEditMode(true);
                                                             setOpenOrgModal(true);

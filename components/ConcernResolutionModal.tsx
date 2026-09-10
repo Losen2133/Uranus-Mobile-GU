@@ -1,6 +1,7 @@
 import { LivestockLogData } from "@/interfaces/interfaces";
 import { resolveConcernLog } from "@/utils/apiFetch";
 import { useEffect, useState } from "react";
+import useAppToast from "./AppToast";
 import { actionTakenField } from "./FormFields";
 import { Button, ButtonText } from "./ui/button";
 import { Heading } from "./ui/heading";
@@ -24,12 +25,52 @@ export default function ConcernResolutionModal({
 }: ConcernResolutionModalProps) {
     const [actionTaken, setActionTaken] = useState<string | undefined>();
     const [isInvalidActionTaken, setIsInvalidActionTaken] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const { showToast } = useAppToast();
     
     useEffect(() => {
         if (isOpen) {
             setActionTaken(undefined);
         }
     }, [isOpen])
+
+    const handleSubmit = () => {
+        if(!actionTaken) {
+            setIsInvalidActionTaken(true);
+            return
+        }
+
+        setLoading(true)
+        resolveConcernLog(
+            livestockId,
+            logData?.id,
+            actionTaken,
+            setError,
+            async () => {
+                try {
+                    onClose();
+                    await onResolution();
+                    setLoading(false);
+                    showToast({
+                        action: "success",
+                        title: "Log Resolved Successfully",
+                        description: "Log has been successfully resolved."
+                    });
+                } catch (error) {
+                    showToast({
+                        action: "error",
+                        title: "Log Failed to Resolve",
+                        description:
+                            error instanceof Error
+                                ? error.message
+                                : "Failed to resolve concern",
+                    });
+                    setLoading(false);
+                }
+            }
+        )
+    }
 
     return (
         <Modal
@@ -64,14 +105,8 @@ export default function ConcernResolutionModal({
                         <ButtonText>Cancel</ButtonText>
                     </Button>
                     <Button
-                        onPress={ () =>
-                            resolveConcernLog(
-                                livestockId,
-                                logData?.id,
-                                actionTaken,
-                                () => {}
-                            )
-                        }
+                        isDisabled={loading}
+                        onPress={ () => handleSubmit()}
                     >
                         <ButtonText>Submit</ButtonText>
                     </Button>

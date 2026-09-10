@@ -1228,6 +1228,7 @@ export async function resolveConcernLog(
     livestockId: number,
     logId: number | undefined,
     actiontaken: string | undefined,
+    errorSetter: Dispatch<SetStateAction<string | null>>,
     onResolution: () => void | Promise<void>
 ) {
     try {
@@ -1260,6 +1261,110 @@ export async function resolveConcernLog(
 
         await onResolution();
     } catch (error) {
-        throw new Error(error as any);
+        const message = error instanceof Error
+            ? error.message
+            : "Failed to resolve concern, please try again later."
+        errorSetter(message);
+        throw error;
+    }
+}
+
+type BaseLivestockLogParams = {
+    closerCallBack: () => void;
+    onLogCreated: () => void | Promise<void>;
+    selectedLivestockId: number
+    image: ImagePicker.ImagePickerAsset | null;
+    logTitle: string;
+    logDescription: string;
+}
+
+type LogLivestockLogParams = BaseLivestockLogParams & {
+    logType: "log";
+}
+
+type ConcernLivestockLogParams = BaseLivestockLogParams & {
+    logType: "concern";
+    concernSeverity: "low" | "moderate" | "high" | "critical" | undefined
+}
+
+type CreateLivestockLogParams = 
+    | LogLivestockLogParams
+    | ConcernLivestockLogParams;
+
+export async function createLivestockLog(
+    params: CreateLivestockLogParams
+): Promise<void> {
+    const {
+        closerCallBack,
+        onLogCreated,
+        logType,
+        selectedLivestockId,
+        image,
+        logTitle,
+        logDescription
+    } = params;
+
+    try {
+        closerCallBack();
+
+        // console.log(selectedLivestockId)
+
+        const token = await SecureStore.getItemAsync("userToken");
+
+        if (!token) {
+            throw new Error("No authorization token found. Please log in.");
+        }
+
+        const formData = new FormData();
+        formData.append("type", logType);
+
+        if (image?.uri) {
+            const file = new File(image.uri);
+
+            formData.append("image", file);
+        }
+
+        if (logType === "log") {
+            const data = {
+                title: logTitle,
+                description: logDescription
+            }
+
+            formData.append("data", JSON.stringify(data));
+        } else {
+            const { concernSeverity } = params;
+            const data = {
+                title: logTitle,
+                description: logDescription,
+                severity: concernSeverity,
+                status: "open",
+                action_taken: null
+            }
+
+            formData.append("data", JSON.stringify(data));
+        }
+
+        const response = await fetch(URANUS_URL + `/api/livestocks/${selectedLivestockId}/logs`, {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+                // DO NOT set Content-Type here
+            },
+            body: formData
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                responseData.message ?? "Failed to create log"
+            );
+        }
+
+        await onLogCreated();
+    } catch (error) {
+        console.log("CREATE LIVESTOCK ERROR:", error);
+        throw error;
     }
 }

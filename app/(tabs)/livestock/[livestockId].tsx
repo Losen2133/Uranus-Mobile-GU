@@ -14,6 +14,7 @@ import { Center } from "@/components/ui/center";
 import { Fab, FabIcon, FabLabel } from "@/components/ui/fab";
 import { Heading } from "@/components/ui/heading";
 import { Image } from "@/components/ui/image";
+import { ImageViewer, ImageViewerCloseButton, ImageViewerContent, ImageViewerTrigger } from "@/components/ui/image-viewer";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -118,7 +119,7 @@ export default function LivestockDetailPage() {
                     <VStack className="flex-1 p-5"
                         space="md"
                     >
-                        <Center>
+                        {/* <Center>
                             <Image
                                 size="xl"
                                 className="border-3 border-white rounded-full"
@@ -127,6 +128,41 @@ export default function LivestockDetailPage() {
                                 }}
                                 alt="Plant Image Here"
                             />
+                        </Center> */}
+
+                        <Center className=" mb-3">
+                            {livestockData?.image_url ? (
+                                <ImageViewer
+                                    images={[
+                                        {
+                                            url: livestockData.image_url,
+                                            alt: livestockData.livestock_name ?? "Log image",
+                                        },
+                                    ]}
+                                >
+                                    <ImageViewerTrigger>
+                                        <Center>
+                                            <Image
+                                                source={{ uri: livestockData.image_url }}
+                                                alt={livestockData.livestock_name ?? "Log image"}
+                                                className="border-3 border-white rounded"
+                                                resizeMode="cover"
+                                                size="xl"
+                                            />
+                                        </Center>
+                                    </ImageViewerTrigger>
+
+                                    <ImageViewerContent>
+                                        <ImageViewerCloseButton />
+                                    </ImageViewerContent>
+                                </ImageViewer>
+                            ) : (
+                                <Center className="bg-gray-200 rounded border-3 border-white w-32 h-32">
+                                    <Text className="text-gray-500 text-center">
+                                        No image available
+                                    </Text>
+                                </Center>
+                            )}
                         </Center>
                         
                         <ScrollView
@@ -285,7 +321,6 @@ export default function LivestockDetailPage() {
                                             );
                                         }
                                     );
-                                    console.log("Proceeding to next phase...");
                                 }
 
                                 if (isHarvesting) {
@@ -309,8 +344,6 @@ export default function LivestockDetailPage() {
                                             );
                                         }
                                     )
-
-                                    console.log("Harvesting livestock...");
                                 }
                             }}
                         >

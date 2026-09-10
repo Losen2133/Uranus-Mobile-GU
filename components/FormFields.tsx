@@ -15,6 +15,43 @@ import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalH
 import { Text } from "./ui/text"
 import { VStack } from "./ui/vstack"
 
+export const logTypeField = (
+    logType: "log" | "concern" | undefined,
+    logTypeSetter: Dispatch<SetStateAction<"log" | "concern" | undefined>>
+) => {
+    return (
+        <Box>
+            <VStack space="md">
+                <Text className="font-bold">
+                    Log Type
+                </Text>
+
+                <HStack space="md">
+                    <Button
+                        className="flex-1"
+                        variant={logType === "log" ? "default" : "outline"}
+                        onPress={() => logTypeSetter("log")}
+                    >
+                        <ButtonText>
+                            Log
+                        </ButtonText>
+                    </Button>
+
+                    <Button
+                        className="flex-1"
+                        variant={logType === "concern" ? "default" : "outline"}
+                        onPress={() => logTypeSetter("concern")}
+                    >
+                        <ButtonText>
+                            Concern
+                        </ButtonText>
+                    </Button>
+                </HStack>
+            </VStack>
+        </Box>
+    )
+}
+
 export const livestockTypeField = (
     livestockType: "plant" | "fish" | undefined,
     livestockTypeSetter: Dispatch<SetStateAction<"plant" | "fish" | undefined>>,
@@ -57,13 +94,14 @@ export const livestockTypeField = (
 
 export const imageField = (
     image: string | null,
-    isImagePickerOpenSetter: Dispatch<SetStateAction<boolean>>
+    isImagePickerOpenSetter: Dispatch<SetStateAction<boolean>>,
+    fieldTitle: string
 ) => {
  return (
     <Box>
         <VStack space="md">
             <Text className="font-bold">
-                Livestock Image
+                {fieldTitle}
             </Text>
 
             <Center>
@@ -156,12 +194,46 @@ export const imagePickerModal = (
     )
 }
 
+export const logTitleField = (
+    logTitle: string,
+    logTitleSetter: Dispatch<SetStateAction<string>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Log Title</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                    type='text'
+                    placeholder='Subject of this log...'
+                    placeholderTextColor={'gray'}
+                    value={logTitle}
+                    onChangeText={(text) => logTitleSetter(text)}
+                />
+            </Input>
+            <FormControlError>
+                <FormControlErrorIcon
+                    as={AlertCircleIcon}
+                    className='text-destructive'
+                />
+                <FormControlErrorText className='text-destructive'>
+                    Please fill out this field
+                </FormControlErrorText>
+            </FormControlError>
+        </FormControl>
+    )
+}
+
 export const livestockNameField = (
     livestockName: string,
     livestockNameSetter: Dispatch<SetStateAction<string>>,
     isError: boolean
 ) => {
-    return(
+    return (
         <FormControl
             isInvalid={isError}
         >
@@ -186,6 +258,43 @@ export const livestockNameField = (
                     Please fill out this field
                 </FormControlErrorText>
             </FormControlError>
+        </FormControl>
+    )
+}
+
+export const logDescriptionField = (
+    logDescription: string,
+    logDescriptionSetter: Dispatch<SetStateAction<string>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Description</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                            type="text"
+                            placeholder="What this log is about..."
+                            placeholderTextColor={'gray'}
+                            value={logDescription}
+                            onChangeText={(text) => logDescriptionSetter(text)}
+                            numberOfLines={4}
+                            className="h-25 pt-3"
+                            style={{ textAlignVertical: 'top' }}
+                        />
+                </Input>
+                <FormControlError>
+                    <FormControlErrorIcon
+                        as={AlertCircleIcon}
+                        className='text-destructive'
+                    />
+                    <FormControlErrorText className='text-destructive'>
+                        Please fill out this field
+                    </FormControlErrorText>
+                </FormControlError>
         </FormControl>
     )
 }
@@ -303,6 +412,47 @@ export const useLivestockProfileField = (
                 </HStack>
             </VStack>
         </Box>
+    )
+}
+
+export const concernSeverityPickerField = (
+    concernSeverity: "low" | "moderate" | "high" | "critical" | undefined,
+    concernSevertiySetter: Dispatch<SetStateAction<"low" | "moderate" | "high" | "critical" | undefined>>
+) => {
+    return (
+        <Box>
+            <VStack space="md">
+                <Text className="font-bold">
+                    Livestock Profile
+                </Text>
+
+                <Box className="border border-outline-300 border-white rounded-md h-12 justify-center px-3">
+                    <Picker
+                        selectedValue={concernSeverity ?? ""}
+                        onValueChange={(value) => {
+                            concernSevertiySetter(
+                                value === ""
+                                    ? undefined
+                                    : value as "low" | "moderate" | "high" | "critical"
+                            );
+                        }}
+                        dropdownIconColor="white"
+                        style={{
+                            color: "white",
+                            marginHorizontal: -10,
+                        }}
+                    >
+                        <Picker.Item label="Select Severity" value="" />
+                        <Picker.Item label="Low" value="low" />
+                        <Picker.Item label="Moderate" value="moderate" />
+                        <Picker.Item label="High" value="high" />
+                        <Picker.Item label="Critical" value="critical" />
+                    </Picker>
+                </Box>
+            </VStack>
+        </Box>
+        
+        
     )
 }
 

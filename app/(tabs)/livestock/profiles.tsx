@@ -3,6 +3,7 @@ import LoaderDisplay from "@/components/LoaderDisplay";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
+import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
 import { Fab, FabIcon, FabLabel } from "@/components/ui/fab";
 import { Heading } from "@/components/ui/heading";
@@ -105,13 +106,18 @@ export default function LivestockProfilesScreen() {
             ? sections
             : sections.filter(section => section.title === capitalize(selectedType));
 
+    const isProfileEmpty = livestockProfileData.length === 0;
+    const isFilteredEmpty = filteredLivestockProfile.length === 0;
+
     return (
         <>
             <VStack className="flex-1 p-5 mb-12"
                 space="md"
             >
                 <Box>
-                    <Input>
+                    <Input
+                        isDisabled={isProfileEmpty}
+                    >
                         <InputSlot>
                             <InputIcon as={SearchIcon}/>
                         </InputSlot>
@@ -135,6 +141,7 @@ export default function LivestockProfilesScreen() {
                             color: "white",
                             marginHorizontal: -10,
                         }}
+                        enabled={!isProfileEmpty}
                     >
                         <Picker.Item
                             label="All Livestock"
@@ -162,6 +169,14 @@ export default function LivestockProfilesScreen() {
                         type="error"
                         message={error}
                     />
+                ) : isProfileEmpty ? (
+                    <Center className="flex-1">
+                        <Text>There are no profiles available</Text>
+                    </Center>
+                ) : isFilteredEmpty ? (
+                    <Center className="flex-1">
+                        <Text>No profiles match your search or filter.</Text>
+                    </Center>
                 ) : (
                     <SectionList
                         sections={filteredSections}

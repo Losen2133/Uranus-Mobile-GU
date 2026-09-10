@@ -2,9 +2,11 @@ import ConcernDetailModal from "@/components/ConcernDetailModal";
 import LoaderDisplay from "@/components/LoaderDisplay";
 import LogDetailModal from "@/components/LogDetailModal";
 import { Box } from "@/components/ui/box";
+import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
+import { Fab, FabIcon, FabLabel } from "@/components/ui/fab";
 import { HStack } from "@/components/ui/hstack";
-import { SearchIcon } from "@/components/ui/icon";
+import { AddIcon, SearchIcon } from "@/components/ui/icon";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
@@ -14,7 +16,7 @@ import { fetchLivestockLogData } from "@/utils/apiFetch";
 import { toBoolean } from "@/utils/other";
 import { capitalize, formatDate } from "@/utils/stringUtils";
 import { Picker } from "@react-native-picker/picker";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { FolderClosed, FolderOpen } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet } from "react-native";
@@ -48,19 +50,22 @@ export default function LivestockLogsPage() {
     const [concernDetail, setConcernDetail] = useState(false);
     const [selectedLog, setSelectedLog] = useState<LivestockLogData>();
     const [resolving, setResolving] = useState(false);
+    const router = useRouter();
 
     useFocusEffect(
         useCallback(() => {
-            if (passedParams.id) {
-                fetchLivestockLogData(
-                    setLoading,
-                    setError,
-                    passedParams.id,
-                    setLivestockLogData
-                )
+            if (!passedParams.id) {
+                return;
             }
+
+            fetchLivestockLogData(
+                setLoading,
+                setError,
+                passedParams.id,
+                setLivestockLogData
+            );
         }, [passedParams.id])
-    )
+    );
 
     const handleRefresh = () => {
         setRefreshing(true);
@@ -164,13 +169,18 @@ export default function LivestockLogsPage() {
             }));
     }, [filteredLivestockLogs]);
 
+    const isLogsEmpty = livestockLogData.length === 0;
+    const isFilteredEmpty = filteredLivestockLogs.length === 0;
+
     return (
         <>
             <VStack className="flex-1 p-5 mb-12"
                 space="md"
             >
                 <Box>
-                    <Input>
+                    <Input
+                        isDisabled={isLogsEmpty}
+                    >
                         <InputSlot>
                             <InputIcon as={SearchIcon}/>
                         </InputSlot>
@@ -194,6 +204,7 @@ export default function LivestockLogsPage() {
                             color: "white",
                             marginHorizontal: -10,
                         }}
+                        enabled={!isLogsEmpty}
                     >
                         <Picker.Item
                             label="All"
@@ -251,6 +262,14 @@ export default function LivestockLogsPage() {
                         type="error"
                         message={error}
                     />
+                ) : isLogsEmpty ? (
+                    <Center className="flex-1">
+                        <Text>There are no logs available</Text>
+                    </Center>
+                ) : isFilteredEmpty ? (
+                    <Center className="flex-1">
+                        <Text>No logs match your search or filter.</Text>
+                    </Center>
                 ) : (
                     <SectionList
                         sections={sections}
@@ -335,6 +354,24 @@ export default function LivestockLogsPage() {
                     />
                 )}
             </VStack>
+            <Fab
+                size="md"
+                placement="bottom right"
+                isHovered={false}
+                isDisabled={false}
+                className="mb-15"
+                onPress={() =>
+                    router.push({
+                        pathname: "/livestock/logForm",
+                        params: {
+                            livestockId: passedParams.id.toString(),
+                        },
+                    })
+                }
+            >
+                <FabIcon as={AddIcon} />
+                <FabLabel>Create Log</FabLabel>
+            </Fab>
             <LogDetailModal
                 isOpen={logDetail}
                 onClose={() => setLogDetail(false)}

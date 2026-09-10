@@ -18,7 +18,8 @@ export default function TabLayout() {
     (segments[1] === "livestock" && segments[2] === "form") ||
     (segments[1] === "livestock" && segments[2] === "profileForm") ||
     (segments[1] === "sensors" && segments[2] === "[sensorId]") ||
-    (segments[1] === "livestock" && segments[2] === "logs");
+    (segments[1] === "livestock" && segments[2] === "logs") ||
+    (segments[1] === "livestock" && segments[2] === "logForm");
 
 
   return (

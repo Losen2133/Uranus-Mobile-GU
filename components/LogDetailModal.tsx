@@ -44,7 +44,7 @@ export default function LogDetailModal ({
                             
                             <ScrollView className="max-h-100">
                                 <Center className=" mb-3">
-                                    {logData.image_url && (
+                                    {logData.image_url ? (
                                         <ImageViewer
                                             images={[
                                                 {
@@ -69,6 +69,12 @@ export default function LogDetailModal ({
                                                 <ImageViewerCloseButton />
                                             </ImageViewerContent>
                                         </ImageViewer>
+                                    ) : (
+                                        <Center className="bg-gray-200 rounded border-3 border-white w-32 h-32">
+                                            <Text className="text-gray-500 text-center">
+                                                No image available
+                                            </Text>
+                                        </Center>
                                     )}
                                 </Center>
                                 <VStack space="md">

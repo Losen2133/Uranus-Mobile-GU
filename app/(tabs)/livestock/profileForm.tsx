@@ -65,9 +65,6 @@ export default function LivestockProfileFormPage() {
                     selectedOrganizationId
                 )
             }
-            if (toEditProfile) {
-                console.log(toEditProfile);
-            }
         }, [selectedOrganizationId, toEditProfileId])
     )
 
@@ -81,8 +78,6 @@ export default function LivestockProfileFormPage() {
         if (!toEditProfile) {
             return;
         }
-
-        console.log("Prefilling form with:", toEditProfile);
 
         setLivestockType(toEditProfile.type);
         setSpeciesName(toEditProfile.species_name ?? "");
@@ -525,7 +520,7 @@ export default function LivestockProfileFormPage() {
                                                 });
                                             }
 
-                                            router.dismissTo("/(tabs)/livestock/profiles");
+                                            router.back();
                                         },
                                         selectedOrganizationId,
                                         profileId: toEditProfileId,
@@ -561,7 +556,7 @@ export default function LivestockProfileFormPage() {
                                                 });
                                             }
 
-                                            router.dismissTo("/(tabs)/livestock/profiles");
+                                            router.back();
                                         },
                                         selectedOrganizationId,
                                         profileId: toEditProfileId,
@@ -600,7 +595,7 @@ export default function LivestockProfileFormPage() {
                                                 });
                                             }
 
-                                            router.dismissTo("/(tabs)/livestock/profiles");
+                                            router.back();
                                         },
 
                                         selectedOrganizationId,
@@ -638,7 +633,7 @@ export default function LivestockProfileFormPage() {
                                                 });
                                             }
 
-                                            router.dismissTo("/(tabs)/livestock/profiles");
+                                            router.back();
                                         },
 
                                         selectedOrganizationId,

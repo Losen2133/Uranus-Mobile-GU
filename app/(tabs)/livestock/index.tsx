@@ -129,6 +129,9 @@ export default function LivestockScreen() {
         ? sections
         : sections.filter(section => section.title === capitalize(selectedType));
 
+    const isLivestocksEmpty = livestockData.length === 0;
+    const isFilteredEmpty = filteredLivestock.length === 0;
+
     return (
         <>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -139,7 +142,9 @@ export default function LivestockScreen() {
                         space='md'
                     >
                         <Box>
-                            <Input>
+                            <Input
+                                isDisabled={isLivestocksEmpty}
+                            >
                                 <InputSlot>
                                     <InputIcon as={SearchIcon} />
                                 </InputSlot>
@@ -163,6 +168,7 @@ export default function LivestockScreen() {
                                     color: "white",
                                     marginHorizontal: -10,
                                 }}
+                                enabled={!isLivestocksEmpty}
                             >
                                 <Picker.Item
                                     label="All Livestock"
@@ -190,6 +196,14 @@ export default function LivestockScreen() {
                                 type="error"
                                 message={error}
                             />
+                        ) : isLivestocksEmpty ? (
+                            <Center className="flex-1">
+                                <Text>There are no livestocks available</Text>
+                            </Center>
+                        ) : isFilteredEmpty ? (
+                            <Center className="flex-1">
+                                <Text>No livestocks match your search or filter.</Text>
+                            </Center>
                         ) : (
                             <SectionList
                                 sections={filteredSections}

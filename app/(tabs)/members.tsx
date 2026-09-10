@@ -6,6 +6,7 @@ import SelectOrgDisplay from "@/components/SelectOrgDisplay";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -115,6 +116,8 @@ export default function MembersScreen() {
         ].filter(section => section.data.length > 0),
         [filteredMembers]
     );
+
+    const isFilteredEmpty = filteredMembers.length === 0;
     
     return (
         <>
@@ -149,6 +152,10 @@ export default function MembersScreen() {
                                 type="error"
                                 message={error}
                             />
+                        ) : isFilteredEmpty ? (
+                            <Center className="flex-1">
+                                <Text>No members match your search or filter.</Text>
+                            </Center>
                         ) : (
                             <SectionList
                                 sections={sections}
@@ -227,7 +234,6 @@ export default function MembersScreen() {
                                                                     key="Deactivate"
                                                                     textValue="Deactivate"
                                                                     onPress={() => {
-                                                                        console.log(selectedMember);
                                                                         setIsChangingStatus(true)}
                                                                     }
                                                                 >

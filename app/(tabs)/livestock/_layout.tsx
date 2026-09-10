@@ -35,6 +35,12 @@ export default function TabLayout() {
                 }}
             />
             <Stack.Screen
+                name="logForm"
+                options={{
+                    title: "New Log",
+                }}
+            />
+            <Stack.Screen
                 name="profiles"
                 options={{
                     title: "Livestock Profiles",
