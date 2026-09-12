@@ -1,8 +1,12 @@
-import { LivestockLogData } from "@/interfaces/interfaces";
+import { useUserInfo } from "@/hooks/useUserInfo";
+import { LivestockLogData, UserOrgRoleResponse } from "@/interfaces/interfaces";
+import { deleteLivestockLog } from "@/utils/apiFetch";
 import { capitalize, formatDate } from "@/utils/stringUtils";
 import { useState } from "react";
 import { ScrollView } from "react-native";
+import useAppToast from "./AppToast";
 import ConcernResolutionModal from "./ConcernResolutionModal";
+import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "./ui/alert-dialog";
 import { Box } from "./ui/box";
 import { Button, ButtonText } from "./ui/button";
 import { Center } from "./ui/center";
@@ -19,20 +23,30 @@ type ConcernDetailModalProps = {
     isOpen: boolean;
     onClose: () => void;
     logData: LivestockLogData | undefined
+    userRole: UserOrgRoleResponse | undefined;
     severityColor: string | undefined;
     livestockId: number
-    onResolution: () => void | Promise<void>;
+    onAction: () => void | Promise<void>;
 }
 
 export default function ConcernDetailModal ({
     isOpen,
     onClose,
     logData,
+    userRole,
     severityColor,
     livestockId,
-    onResolution
+    onAction
 }: ConcernDetailModalProps) {
     const [isResolving, setIsResolving] = useState(false);
+    const { fetchedUserInfo } = useUserInfo();
+    const [isDeletingConcern, setIsDeletingConcern] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const isUserAuthorized =
+        logData?.recorded_by.id === fetchedUserInfo?.id ||
+        userRole?.data?.role === "owner" ||
+        userRole?.data?.role === "admin";
+    const { showToast } = useAppToast(); 
 
     return (
         <>
@@ -165,6 +179,9 @@ export default function ConcernDetailModal ({
                         )}
                     </ModalBody>
                     <ModalFooter>
+                        <Button onPress={() => setIsDeletingConcern(true)} isDisabled={!isUserAuthorized || loading}>
+                            <ButtonText className="text-red-500">Delete</ButtonText>
+                        </Button>
                         {logData?.type === "concern" && logData.data.status === "open" && (
                             <Button onPress={() => setIsResolving(true)}>
                                 <ButtonText>Resolve</ButtonText>
@@ -180,9 +197,63 @@ export default function ConcernDetailModal ({
                 livestockId={livestockId}
                 onResolution={() => {
                     onClose();
-                    onResolution();
+                    onAction();
                 }}
             />
+            <AlertDialog
+                isOpen={isDeletingConcern}
+                onClose={() => setIsDeletingConcern(false)}
+            >
+                <AlertDialogBackdrop />
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <Heading className="text-foreground font-semibold text-lg">
+                            Deleting {logData?.data.title}
+                        </Heading>
+                    </AlertDialogHeader>
+                    <AlertDialogBody className="mt-3 mb-4">
+                        <Text className="text-sm text-muted-foreground">
+                            Confirming this will delete the log {logData?.data.title}, this action cannot be undone.
+                        </Text>
+                    </AlertDialogBody>
+                    <AlertDialogFooter>
+                        <Button variant="outline" onPress={() => setIsDeletingConcern(false)}>
+                            <ButtonText>Cancel</ButtonText>
+                        </Button>
+                        <Button isDisabled={loading} onPress={() => {
+                            setLoading(true)
+                            deleteLivestockLog(
+                                logData,
+                                async () => {
+                                    try {
+                                        setIsDeletingConcern(false)
+                                        onClose();
+                                        await onAction();
+                                        setLoading(false)
+                                        showToast({
+                                            action: "success",
+                                            title: "Concern Deleted Successfully",
+                                            description: "Concern has been successfully deleted."
+                                        });
+                                    } catch (error) {
+                                        showToast({
+                                            action: "error",
+                                            title: "Concern Failed to get Deleted",
+                                            description:
+                                                error instanceof Error
+                                                    ? error.message
+                                                    : "Failed to delete concern",
+                                        });
+                                        setLoading(false);
+                                    }
+                                }
+                            )
+                        }}>
+                            <ButtonText>Confirm</ButtonText>
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }

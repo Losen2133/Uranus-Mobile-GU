@@ -11,8 +11,9 @@ import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useFam } from "@/hooks/useFamOpacity";
-import { LivestockLogData } from "@/interfaces/interfaces";
-import { fetchLivestockLogData } from "@/utils/apiFetch";
+import { useOrganization } from "@/hooks/useOrganization";
+import { LivestockLogData, UserOrgRoleResponse } from "@/interfaces/interfaces";
+import { fetchLivestockLogData, getMyOrgRole } from "@/utils/apiFetch";
 import { toBoolean } from "@/utils/other";
 import { capitalize, formatDate } from "@/utils/stringUtils";
 import { Picker } from "@react-native-picker/picker";
@@ -50,6 +51,8 @@ export default function LivestockLogsPage() {
     const [concernDetail, setConcernDetail] = useState(false);
     const [selectedLog, setSelectedLog] = useState<LivestockLogData>();
     const [resolving, setResolving] = useState(false);
+    const { selectedOrganizationId } = useOrganization();
+    const [userRole, setUserRole] = useState<UserOrgRoleResponse>();
     const router = useRouter();
 
     useFocusEffect(
@@ -57,14 +60,22 @@ export default function LivestockLogsPage() {
             if (!passedParams.id) {
                 return;
             }
+            
+            if(selectedOrganizationId) {
+                getMyOrgRole(
+                    selectedOrganizationId,
+                    setUserRole
+                )
+                fetchLivestockLogData(
+                    setLoading,
+                    setError,
+                    passedParams.id,
+                    setLivestockLogData
+                );
+            }
 
-            fetchLivestockLogData(
-                setLoading,
-                setError,
-                passedParams.id,
-                setLivestockLogData
-            );
-        }, [passedParams.id])
+            
+        }, [passedParams.id, selectedOrganizationId])
     );
 
     const handleRefresh = () => {
@@ -375,19 +386,29 @@ export default function LivestockLogsPage() {
             <LogDetailModal
                 isOpen={logDetail}
                 onClose={() => setLogDetail(false)}
+                userRole={userRole}
                 logData={selectedLog}
+                onAction={() => {
+                    fetchLivestockLogData(
+                        setLoading,
+                        setError,
+                        passedParams.id,
+                        setLivestockLogData
+                    )
+                }}
             />
             <ConcernDetailModal
                 isOpen={concernDetail}
                 onClose={() => setConcernDetail(false)}
                 logData={selectedLog}
+                userRole={userRole}
                 severityColor={
                     selectedLog?.type === "concern"
                         ? severityStyles[selectedLog.data.severity]
                         : undefined
                 }
                 livestockId={passedParams.id}
-                onResolution={() => {
+                onAction={() => {
                     fetchLivestockLogData(
                         setLoading,
                         setError,

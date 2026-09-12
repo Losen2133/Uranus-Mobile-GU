@@ -18,9 +18,10 @@ import { ImageViewer, ImageViewerCloseButton, ImageViewerContent, ImageViewerTri
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useUserInfo } from "@/hooks/useUserInfo";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { LivestockData } from "@/interfaces/interfaces";
-import { fetchIndividualLivestock, harvestLivestock, proceedToNextPhase } from "@/utils/apiFetch";
+import { LivestockData, UserOrgRoleResponse } from "@/interfaces/interfaces";
+import { deleteLivestock, fetchIndividualLivestock, getMyOrgRole, harvestLivestock, proceedToNextPhase } from "@/utils/apiFetch";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Menu } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -47,10 +48,18 @@ export default function LivestockDetailPage() {
     const [isHarvesting, setIsHarvesting] = useState(false);
     const { showToast } = useAppToast();
     const router = useRouter();
+    const [userRole, setUserRole] = useState<UserOrgRoleResponse>();
+    const { fetchedUserInfo } = useUserInfo();
+    const [isLoadingDelete, setIsLoadingDelete] = useState();
+    const [isDeletingLivestock, setIsDeletingLivestock] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
             if (selectedOrganizationId && livestockId && livestockName) {
+                getMyOrgRole(
+                    selectedOrganizationId,
+                    setUserRole
+                )
                 fetchIndividualLivestock(
                     setLoading,
                     setError,
@@ -96,6 +105,11 @@ export default function LivestockDetailPage() {
     const isChangePhaseDisabled =
         livestockData?.type === "plant" &&
         livestockData.data.phase === "growbed";
+            
+    const isUserAuthorized =
+        livestockData?.added_by.id === fetchedUserInfo?.id ||
+        userRole?.data?.role === "owner" ||
+        userRole?.data?.role === "admin";
 
     return (
         <>
@@ -241,6 +255,13 @@ export default function LivestockDetailPage() {
                     >
                         <ActionsheetItemText className="text-black">View Logs</ActionsheetItemText>
                     </ActionsheetItem>
+                    <ActionsheetItem
+                        isDisabled={!isUserAuthorized}
+                        className="m-2 bg-white"
+                        onPress={() => setIsDeletingLivestock(true)}
+                    >
+                        <ActionsheetItemText className="text-red-500">Delete</ActionsheetItemText>
+                    </ActionsheetItem>
                 </ActionsheetContent>
             </Actionsheet>
             <AlertDialog
@@ -348,6 +369,60 @@ export default function LivestockDetailPage() {
                             }}
                         >
                             <ButtonText>{isChangingPhase ? "Proceed" : isHarvesting ? "Harvest" : ""}</ButtonText>
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog
+                isOpen={isDeletingLivestock}
+                onClose={() => setIsDeletingLivestock(false)}
+            >
+                <AlertDialogBackdrop />
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <Heading className="text-foreground font-semibold text-lg">
+                            Deleting {livestockData?.livestock_name}
+                        </Heading>
+                    </AlertDialogHeader>
+                    <AlertDialogBody className="mt-3 mb-4">
+                        <Text className="text-sm text-muted-foreground">
+                            Confirming this will delete the livestock {livestockData?.livestock_name}, this action cannot be undone.
+                        </Text>
+                    </AlertDialogBody>
+                    <AlertDialogFooter>
+                        <Button variant="outline" onPress={() => setIsDeletingLivestock(false)}>
+                            <ButtonText>Cancel</ButtonText>
+                        </Button>
+                        <Button isDisabled={loading} onPress={() => {
+                            setLoading(true)
+                            deleteLivestock(
+                                livestockData?.id,
+                                selectedOrganizationId,
+                                async () => {
+                                    try {
+                                        setIsDeletingLivestock(false)
+                                        router.back();
+                                        setLoading(false)
+                                        showToast({
+                                            action: "success",
+                                            title: "Livestock Deleted Successfully",
+                                            description: "Livestock has been successfully deleted."
+                                        });
+                                    } catch (error) {
+                                        showToast({
+                                            action: "error",
+                                            title: "LIvestock Failed to get Deleted",
+                                            description:
+                                                error instanceof Error
+                                                    ? error.message
+                                                    : "Failed to delete livestock",
+                                        });
+                                        setLoading(false);
+                                    }
+                                }
+                            )
+                        }}>
+                            <ButtonText>Confirm</ButtonText>
                         </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -39,7 +39,16 @@ export interface UserData {
     onboarding_mobile: boolean;
     onboarding_webapp: boolean;
     settings: UserSettings;
+}
 
+export interface UserOrgRoleResponse {
+  status: string;
+  data: UserOrgRoleData
+}
+
+interface UserOrgRoleData {
+  role_id: number;
+  role: string;
 }
 
 export interface UserSettings {

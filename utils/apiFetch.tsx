@@ -1,4 +1,4 @@
-import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationData, OrganizationMember, Role, SensorData, UserSettings } from "@/interfaces/interfaces";
+import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationData, OrganizationMember, Role, SensorData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
@@ -1216,7 +1216,6 @@ export async function fetchLivestockLogData(
 
         const livestockLogsJson = await livestockLogsResponse.json();
         livestockLogsSetter(livestockLogsJson.data)
-        console.log(livestockLogsJson.data[0])
     } catch (error: any) {
         if(errorSetter) errorSetter(error.message || 'An error occurred');
     } finally {
@@ -1366,5 +1365,108 @@ export async function createLivestockLog(
     } catch (error) {
         console.log("CREATE LIVESTOCK ERROR:", error);
         throw error;
+    }
+}
+
+export async function getMyOrgRole(
+    selectedOrganizationId: number,
+    userRoleSetter: Dispatch<SetStateAction<UserOrgRoleResponse | undefined>>
+) {
+    try {
+        const token = await SecureStore.getItemAsync("userToken");
+
+        if (!token) {
+            throw new Error("No authorization token found. Please log in.");
+        }
+
+        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/my-role`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (response.status === 401) {
+            throw new Error('Session expired. Please log in again.');
+        }
+
+        if (!response.ok) {
+            console.log("Reached Here")
+            console.log(await response.json())
+            throw new Error('Failed to load secure data.');
+        }
+
+        const responseJson = await response.json();
+        console.log(responseJson.data)
+        userRoleSetter(responseJson.data)
+    } catch (error) {
+        throw error;
+    }
+}
+
+export async function deleteLivestockLog(
+    logData: LivestockLogData | undefined,
+    onLogDelete: () => void | Promise<void>
+) {
+    try {
+        const token = await SecureStore.getItemAsync("userToken");
+
+        if (!token) {
+            throw new Error("No authorization token found. Please log in.");
+        }
+
+        const response = await fetch(URANUS_URL + `/api/livestocks/${logData?.livestock_id}/logs/${logData?.id}`, {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message ?? 'Failed to delete log');
+        }
+
+        onLogDelete();
+    } catch (error) {
+        throw new Error(error as any);
+    }
+}
+
+export async function deleteLivestock(
+    livestockId: number | undefined,
+    selectedOrganizationId: number | null,
+    onLivestockDelete: () => void | Promise<void>
+) {
+    try {
+        const token = await SecureStore.getItemAsync("userToken");
+
+        if (!token) {
+            throw new Error("No authorization token found. Please log in.");
+        }
+
+        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}`, {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message ?? 'Failed to delete livestock');
+        }
+
+        onLivestockDelete();
+    } catch (error) {
+        throw new Error(error as any);
     }
 }
