@@ -6,6 +6,36 @@ import { Dispatch, SetStateAction } from "react";
 import { TempUnit } from "./stringUtils";
 const URANUS_URL = "https://uranus.luscsusjr.dpdns.org";
 
+export async function verifyMe() {
+    try {
+        const token = await SecureStore.getItemAsync('userToken');
+
+        if(!token) {
+            throw new Error('No authorization token found. Please log in.');
+        }
+
+        const response = await fetch(URANUS_URL + '/api/me', {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (response.status === 401) {
+            throw new Error('Session expired. Please log in again.');
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to load secure data.');
+        }
+    } catch (error: any) {
+        console.error("updateUserSettings error:", error);
+        throw error;
+    }
+}
+
 export async function fetchUserSettings(
     loadingSetter: Dispatch<SetStateAction<boolean>>,
     errorSetter: Dispatch<SetStateAction<string | null>>,

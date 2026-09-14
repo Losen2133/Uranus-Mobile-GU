@@ -1,16 +1,16 @@
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
+import { Building2 } from "lucide-react-native";
 import { Center } from "./ui/center";
 import { Text } from "./ui/text";
 import { VStack } from "./ui/vstack";
 
 export default function SelectOrgDisplay() {
-    const router = useRouter();
-
     return (
         <Center
             className="flex-1"
         >
-            <VStack>
+            <VStack className="justify-center items-center">
+                <Building2 color={'white'} size={50} />
                 <Text
                     className="text-2xl font-bold mb-5"
                 >

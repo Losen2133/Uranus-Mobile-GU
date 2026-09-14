@@ -12,7 +12,7 @@ import { VStack } from "@/components/ui/vstack";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform } from "react-native";
 const logoImage = require("../../assets/images/icon.png");
@@ -27,7 +27,6 @@ export default function LoginScreen() {
     const { setFetchedUserInfo } = useUserInfo();
     const { signIn } = useAuth();
     const { setFetchedUserSettings } = useUserSettings();
-    const router = useRouter();
 
     const [isInvalidEmail, setIsInvalidEmail] = useState(false);
     const [isInvalidPassword, setIsInvalidPassword] = useState(false);
@@ -44,7 +43,6 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         setLoading(true);
-        
 
         try {
             const response = await fetch(URANUS_URL + '/api/login', {
@@ -63,9 +61,6 @@ export default function LoginScreen() {
             await signIn(data.token); 
             setFetchedUserInfo(data.user);
             setFetchedUserSettings(data.user.settings);
-            // router.replace('/(tabs)/dashboard');
-            // console.log(data.user.settings);
-            router.replace('/(tabs)/dashboard');
         } else {
             // Alert.alert("Login Failed", data.message || "Invalid credentials.");
             showToast({

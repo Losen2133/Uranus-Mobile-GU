@@ -1,3 +1,4 @@
+import { verifyMe } from '@/utils/apiFetch';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -11,9 +12,7 @@ const AuthContext = createContext<{
     userToken: null,
     isLoading: true,
     signIn: async () => {},
-    signOut: async () => {
-        
-    },
+    signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -23,20 +22,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const URANUS_URL = 'https://uranus.luscsusjr.dpdns.org'
 
     useEffect(() => {
-        async function loadToken() {
+        const checkSession = async () => {
             try {
                 const token = await SecureStore.getItemAsync('userToken');
-                if (token) {
-                    setUserToken(token);
+
+                if (!token) {
+                    setUserToken(null);
+                    return;
                 }
+
+                await verifyMe();
+
+                setUserToken(token);
+
             } catch (error) {
-                console.error('Failed to load token', error);
+                await SecureStore.deleteItemAsync('userToken');
+
+                setUserToken(null);
             } finally {
                 setIsLoading(false);
             }
-        }
-        loadToken();
-    },[]);
+        };
+
+        checkSession();
+    }, []);
+
     return (
         <AuthContext.Provider value={{
             userToken,
@@ -44,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             signIn: async (token: string) => {
                 await SecureStore.setItemAsync('userToken', token);
                 setUserToken(token);
+
+                router.replace('/');
             },
             signOut: async () => {
                 try {
@@ -68,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // 3. ALWAYS clear the local storage and state, no matter what happened above
                     await SecureStore.deleteItemAsync('userToken');
                     setUserToken(null);
-                    router.replace('/');
+                    router.replace('/(auth)/login');
                 }
             },
         }}>
