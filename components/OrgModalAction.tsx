@@ -1,6 +1,5 @@
 import { OrganizationData } from "@/interfaces/interfaces";
-import { createOrganization, updateOrganization } from "@/utils/apiFetch";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, ButtonText } from "./ui/button";
 import { FormControl, FormControlError, FormControlErrorIcon, FormControlErrorText, FormControlLabel, FormControlLabelText } from "./ui/form-control";
 import { Heading } from "./ui/heading";
@@ -13,10 +12,12 @@ type OrgModalActionProps = {
     isOpen: boolean;
     editMode: boolean;
     toEditOrg: OrganizationData | undefined;
-    errorSetter: Dispatch<SetStateAction<string | null>>;
     onOrgEdit: () => void;
     onClose: () => void;
-    onOrgAction: () => void | Promise<void>;
+    onOrgAction: (
+        orgName: string,
+        orgDesc: string
+    ) => void | Promise<void>;
 }
 
 export default function OrgModalAction ({
@@ -24,7 +25,6 @@ export default function OrgModalAction ({
     editMode,
     onOrgEdit,
     toEditOrg,
-    errorSetter,
     onClose,
     onOrgAction
 }: OrgModalActionProps) {
@@ -124,40 +124,24 @@ export default function OrgModalAction ({
                         <ButtonText>Cancel</ButtonText>
                     </Button>
                     <Button
-                            onPress={() => {
-                                if(editMode) {
-                                    updateOrganization(
-                                        orgName,
-                                        orgDesc,
-                                        toEditOrg?.id,
-                                        errorSetter,
-                                        onClose,
-                                        () => {
-                                            onOrgEdit()
-                                            onOrgAction()
-                                        }
-                                    )
-                                } else {
-                                    createOrganization(
-                                        orgName,
-                                        orgDesc,
-                                        errorSetter,
-                                        onClose,
-                                        onOrgAction
-                                    )
-                                }
-                            }}
-                            isDisabled={
-                                editMode
-                                    ? !orgName ||
-                                    !orgDesc ||
-                                    (orgName === toEditOrg?.name &&
-                                    orgDesc === toEditOrg?.description)
-                                    : !orgName || !orgDesc
-                            }
-                        >
-                            <ButtonText>{editMode ? "Save" : "Create"}</ButtonText>
-                        </Button>
+                        onPress={() => {
+                            onOrgAction(orgName, orgDesc);
+                        }}
+                        isDisabled={
+                            editMode
+                                ? !orgName ||
+                                !orgDesc ||
+                                (
+                                    orgName === toEditOrg?.name &&
+                                    orgDesc === toEditOrg?.description
+                                )
+                                : !orgName || !orgDesc
+                        }
+                    >
+                        <ButtonText>
+                            {editMode ? "Save" : "Create"}
+                        </ButtonText>
+                    </Button>
                 </ModalFooter>
             </ModalContent>
         </Modal>

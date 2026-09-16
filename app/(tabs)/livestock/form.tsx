@@ -55,15 +55,107 @@ export default function LivestockFormPage() {
     const router = useRouter();
     const { showToast } = useAppToast();
     
+    const handleFetchLivestockProfiles = async () => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await fetchLivestockProfileData(
+                setLivestockProfiles,
+                selectedOrganizationId
+            );
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Fetch Livestock Profiles",
+                description: "Failed to fetch available livestock profiles, please try again later",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateLivestock = async () => {
+        if (!selectedOrganizationId || !livestockType) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            if (livestockType === "plant") {
+                await createLivestock({
+                    selectedOrganizationId,
+                    livestockType: "plant",
+                    image,
+                    liveStockName: livestockName,
+                    description,
+                    speciesName,
+                    minTemp,
+                    maxTemp,
+                    tempUnit,
+                    minPh,
+                    maxPh,
+                    harvestDays,
+                    nurseryDays,
+                });
+            } else {
+                await createLivestock({
+                    selectedOrganizationId,
+                    livestockType: "fish",
+                    image,
+                    liveStockName: livestockName,
+                    description,
+                    speciesName,
+                    minTemp,
+                    maxTemp,
+                    tempUnit,
+                    minPh,
+                    maxPh,
+                    growthDays,
+                    age,
+                });
+            }
+
+            setIsCreatingLivestock(false);
+
+            showToast({
+                action: "success",
+                title: "Livestock Created",
+                description: `${livestockName}, created successfully`,
+            });
+
+            router.back();
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : `Failed to create ${livestockName}`;
+
+            setIsCreatingLivestock(false);
+
+            showToast({
+                action: "error",
+                title: "Livestock Creation Failed",
+                description: "Failed to create livestock, please try again later.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useFocusEffect(
         useCallback(() => {
             if (selectedOrganizationId) {
-                fetchLivestockProfileData(
-                    setLoading,
-                    setError,
-                    setLivestockProfiles,
-                    selectedOrganizationId
-                );
+                handleFetchLivestockProfiles();
             }
         }, [selectedOrganizationId])
     )
@@ -598,85 +690,9 @@ export default function LivestockFormPage() {
                         </Button>
                         <Button onPress={() => {
                             if(livestockType === "plant") {
-                                createLivestock({
-                                    closerCallBack: () => {
-                                        setIsCreatingLivestock(false);
-                                    },
-
-                                    onLivestockCreated: async () => {
-                                        try {
-                                            showToast({
-                                                action: "success",
-                                                title: "Livestock Created",
-                                                description: `${livestockName}, created successfully`,
-                                            });
-                                        } catch (error) {
-                                            showToast({
-                                                action: "error",
-                                                title: "Livestock Creation Failed",
-                                                description: `Failed to create ${livestockName}, please try again`,
-                                            });
-                                        }
-
-                                        router.back()
-                                    },
-
-                                    selectedOrganizationId,
-                                    livestockType: "plant",
-                                    image,
-                                    liveStockName: livestockName,
-                                    description,
-                                    speciesName,
-                                    minTemp,
-                                    maxTemp,
-                                    tempUnit,
-                                    minPh,
-                                    maxPh,
-
-                                    // Plant-specific properties
-                                    harvestDays,
-                                    nurseryDays,
-                                });
+                                handleCreateLivestock();
                             } else {
-                                createLivestock({
-                                    closerCallBack: () => {
-                                        setIsCreatingLivestock(false);
-                                    },
-
-                                    onLivestockCreated: async () => {
-                                        try {
-                                            showToast({
-                                                action: "success",
-                                                title: "Livestock Created",
-                                                description: `${livestockName}, created successfully`,
-                                            });
-                                        } catch (error) {
-                                            showToast({
-                                                action: "error",
-                                                title: "Livestock Creation Failed",
-                                                description: `Failed to create ${livestockName}, please try again`,
-                                            });
-                                        }
-
-                                        router.back()
-                                    },
-
-                                    selectedOrganizationId,
-                                    livestockType: "fish",
-                                    image,
-                                    liveStockName: livestockName,
-                                    description,
-                                    speciesName,
-                                    minTemp,
-                                    maxTemp,
-                                    tempUnit,
-                                    minPh,
-                                    maxPh,
-
-                                    // Fish-specific properties
-                                    growthDays,
-                                    age,
-                                });
+                                handleCreateLivestock();
                             }
                         }}>
                             <ButtonText>Confirm</ButtonText>

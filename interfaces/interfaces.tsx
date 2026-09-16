@@ -9,6 +9,23 @@ export interface OrganizationMember {
   active: boolean;
 }
 
+export interface OrganizationDashboardFetchResponse {
+  status: string;
+  data: OrganizationDashboardData[]
+}
+
+export interface OrganizationDashboardData {
+  id: number;
+  organization_name: string;
+  owner: {
+    name: string;
+    email: string;
+  }
+  members_count: number
+  livestocks_count: number;
+  sensors_count: number;
+}
+
 export interface OrganizationData {
   id: number;
   owner_id: number;

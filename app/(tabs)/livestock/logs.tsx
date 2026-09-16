@@ -1,6 +1,7 @@
+import useAppToast from "@/components/AppToast";
 import ConcernDetailModal from "@/components/ConcernDetailModal";
-import LoaderDisplay from "@/components/LoaderDisplay";
 import LogDetailModal from "@/components/LogDetailModal";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import { Box } from "@/components/ui/box";
 import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
@@ -41,8 +42,7 @@ export default function LivestockLogsPage() {
         isLivestockHarvested: toBoolean(isHarvested)
     }
     const [query, setQuery] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedType, setSelectedType] = useState<"all" | "log" | "concern" | "low" | "moderate" | "high" | "critical" | "open" | "closed">("all");
     const [livestockLogData, setLivestockLogData] = useState<LivestockLogData[]>([]);
@@ -51,41 +51,61 @@ export default function LivestockLogsPage() {
     const [concernDetail, setConcernDetail] = useState(false);
     const [selectedLog, setSelectedLog] = useState<LivestockLogData>();
     const [resolving, setResolving] = useState(false);
+    const { showToast } = useAppToast();
     const { selectedOrganizationId } = useOrganization();
     const [userRole, setUserRole] = useState<UserOrgRoleResponse>();
     const router = useRouter();
+    
+    const handleFetchLivestockLogs = async () => {
+        if (!selectedOrganizationId || !passedParams.id) {
+            return;
+        }
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!passedParams.id) {
-                return;
-            }
-            
-            if(selectedOrganizationId) {
+        // setLoading(true);
+
+        try {
+            await Promise.all([
                 getMyOrgRole(
                     selectedOrganizationId,
                     setUserRole
-                )
+                ),
                 fetchLivestockLogData(
-                    setLoading,
-                    setError,
                     passedParams.id,
                     setLivestockLogData
-                );
-            }
+                ),
+            ]);
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
 
-            
+            showToast({
+                action: "error",
+                title: "Failed to Fetch Livestock Logs",
+                description: "Failed to fetch available logs, please try again later.",
+            });
+        } finally {
+            // setLoading(false);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchData = async () => {
+                try {
+                    await handleFetchLivestockLogs();
+                } finally {
+                    setLoading(false);
+                }
+            }
+            fetchData();
         }, [passedParams.id, selectedOrganizationId])
     );
 
     const handleRefresh = () => {
         setRefreshing(true);
-        fetchLivestockLogData(
-            setLoading,
-            setError,
-            passedParams.id,
-            setLivestockLogData
-        )
+        handleFetchLivestockLogs();
         setRefreshing(false);
     }
 
@@ -264,16 +284,8 @@ export default function LivestockLogsPage() {
                     </Picker>
                 </Box>
                 {loading ? (
-                    <LoaderDisplay
-                        type="loading"
-                        message="Loading Logs..."
-                    />
-                ) : error ? (
-                    <LoaderDisplay
-                        type="error"
-                        message={error}
-                    />
-                ) : isLogsEmpty ? (
+                    <SkeletonLoading />
+                ) : isLogsEmpty && !loading ? (
                     <Center className="flex-1">
                         <Text>There are no logs available</Text>
                     </Center>
@@ -389,12 +401,7 @@ export default function LivestockLogsPage() {
                 userRole={userRole}
                 logData={selectedLog}
                 onAction={() => {
-                    fetchLivestockLogData(
-                        setLoading,
-                        setError,
-                        passedParams.id,
-                        setLivestockLogData
-                    )
+                    handleFetchLivestockLogs()
                 }}
             />
             <ConcernDetailModal
@@ -409,12 +416,7 @@ export default function LivestockLogsPage() {
                 }
                 livestockId={passedParams.id}
                 onAction={() => {
-                    fetchLivestockLogData(
-                        setLoading,
-                        setError,
-                        passedParams.id,
-                        setLivestockLogData
-                    )
+                    handleFetchLivestockLogs()
                 }}
             />
         </>

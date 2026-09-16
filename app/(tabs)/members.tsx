@@ -1,8 +1,8 @@
 import AddMemberModal from "@/components/AddMemberModal";
 import useAppToast from "@/components/AppToast";
-import LoaderDisplay from "@/components/LoaderDisplay";
 import MemberChangeRoleModal from "@/components/MemberChangeRoleModal";
 import SelectOrgDisplay from "@/components/SelectOrgDisplay";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { useFam } from "@/hooks/useFamOpacity";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { OrganizationMember, Role } from "@/interfaces/interfaces";
-import { fetchMemberData, updateMemberStatus } from "@/utils/apiFetch";
+import { addMember, fetchMemberData, updateMemberRole, updateMemberStatus } from "@/utils/apiFetch";
 import { useFocusEffect, useNavigation } from "expo-router";
 import { EllipsisVertical, Power, RefreshCcw, UserRoundPlus } from "lucide-react-native";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
@@ -28,12 +28,12 @@ import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, SectionList,
 export default function MembersScreen() {
     const [members, setMembers] = useState<OrganizationMember[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [isChangingRole, setIsChangingRole] = useState(false);
     const [selectedMember, setSelectedMember] = useState<OrganizationMember>();
     const [isChangingStatus, setIsChangingStatus] = useState(false);
+    const [statusChanging, setStatusChanging] = useState(false);
     const [isAddMember, setIsAddMember] = useState(false);
     const { selectedOrganizationId } = useOrganization();
     const { fetchedUserInfo } = useUserInfo();
@@ -57,28 +57,179 @@ export default function MembersScreen() {
         });
     })
 
-    useFocusEffect(
-        useCallback(() => {
-            selectedOrganizationId && fetchMemberData(
-                setLoading,
-                setError,
+    const handleFetchMembers = async () => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            await fetchMemberData(
                 setMembers,
                 setRoles,
                 selectedOrganizationId
             );
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : 'An unexpected error occurred';
+
+            showToast({
+                action: 'error',
+                title: 'Failed to Fetch Members',
+                description: 'Failed to fetch organization members, please try again later',
+            });
+        } finally {
+            // setLoading(false);
+        }
+    };
+
+    const handleAddMember = async (
+        email: string,
+        role: string
+    ) => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        try {
+            await addMember(
+                email,
+                role,
+                selectedOrganizationId
+            );
+
+            setIsAddMember(false);
+
+            showToast({
+                action: "success",
+                title: "Member Added",
+                description: "Member added successfully",
+            });
+
+            await handleFetchMembers();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : String(error);
+
+            setIsAddMember(false);
+
+            showToast({
+                action: "error",
+                title: "Failed to Add Member",
+                description: "Failed to add member, please try again later.",
+            });
+        }
+    };
+
+    const handleUpdateMemberRole = async (
+        role: string,
+        memberId: number
+    ) => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        try {
+            await updateMemberRole(
+                role,
+                memberId,
+                selectedOrganizationId
+            );
+
+            setIsChangingRole(false);
+
+            showToast({
+                action: "success",
+                title: "Role Updated",
+                description: "Member role updated successfully",
+            });
+
+            await handleFetchMembers();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            setIsChangingRole(false);
+
+            showToast({
+                action: "error",
+                title: "Failed to Update Role",
+                description: "Failed to update member role, please try again later."
+            });
+        }
+    };
+
+    const handleUpdateMemberStatus = async (
+        active: boolean,
+        memberId: number
+    ) => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        try {
+            setStatusChanging(true);
+
+            await updateMemberStatus(
+                active,
+                memberId,
+                selectedOrganizationId
+            );
+
+            setIsChangingStatus(false);
+            setStatusChanging(false);
+
+            showToast({
+                action: "success",
+                title: "Status Updated",
+                description: "Member status updated successfully",
+            });
+
+            await handleFetchMembers();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            setIsChangingStatus(false);
+            setStatusChanging(false);
+
+            showToast({
+                action: "error",
+                title: "Failed to Update Status",
+                description: "Failed to update member status, please try again later.",
+            });
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchData = async () => {
+                try {
+                    await handleFetchMembers();
+                } finally {
+                    setLoading(false);
+                }
+            }
+            fetchData();
         }, [selectedOrganizationId])
     );
 
     const handleRefresh = () => {
-        setRefreshing(true);
-        selectedOrganizationId && fetchMemberData(
-            setLoading,
-            setError,
-            setMembers,
-            setRoles,
-            selectedOrganizationId
-        );
-        setRefreshing(false);
+        // setRefreshing(true);
+        handleFetchMembers();
+        // setRefreshing(false);
     }
 
     const filteredMembers = useMemo(() => {
@@ -117,6 +268,7 @@ export default function MembersScreen() {
         [filteredMembers]
     );
 
+    const isMembersEmpty = members.length === 0;
     const isFilteredEmpty = filteredMembers.length === 0;
     
     return (
@@ -143,15 +295,11 @@ export default function MembersScreen() {
                             </Input>
                         </Box>
                         {loading ? (
-                            <LoaderDisplay
-                                type="loading"
-                                message="Loading Members..."
-                            />
-                        ) : error ? (
-                            <LoaderDisplay
-                                type="error"
-                                message={error}
-                            />
+                            <SkeletonLoading />
+                        ) : isMembersEmpty && !loading? (
+                            <Center className="flex-1">
+                                <Text>There are no members available</Text>
+                            </Center>
                         ) : isFilteredEmpty ? (
                             <Center className="flex-1">
                                 <Text>No members match your search or filter.</Text>
@@ -183,13 +331,23 @@ export default function MembersScreen() {
                                                 <HStack>
                                                     
                                                     <Box className="">
-                                                        <Text className="font-bold">
-                                                            {item.name}
-                                                            {fetchedUserInfo?.id === item.id && (
-                                                                <Text className="font-bold text-blue-500 text-sm">{' (You)'}</Text>
+                                                        <Box>
+                                                            <Text className="font-bold">
+                                                                {item.name}
+                                                                {fetchedUserInfo?.id === item.id && (
+                                                                    <Text className="font-bold text-blue-500 text-sm">{' (You)'}</Text>
+                                                                )}
+                                                            </Text>
+                                                            <Text className="text-gray-400">{item.email}</Text>
+                                                            {!item.active && (
+                                                                <Box className="flex-row items-center">
+                                                                    <Icon as={Power} color="red" size="md" className="mr-2" />
+                                                                    <Text className="text-red-500">Deactivated</Text>
+                                                                </Box>
                                                             )}
-                                                        </Text>
-                                                        <Text className="text-gray-400">{item.email}</Text>
+                                                        </Box>
+                                                        
+                                                        
                                                     </Box>
                                                     <Box className="flex-1 justify-center items-end">
                                                         <HStack>
@@ -274,29 +432,8 @@ export default function MembersScreen() {
                     onClose={() => setIsChangingRole(false)}
                     selectedMember={selectedMember}
                     roleList={roles}
-                    user={members.find(member => member.id === fetchedUserInfo?.id)}
-                    onRoleUpdated={() => {
-                        if (error) {
-                            showToast({
-                                action: "warning",
-                                title: "Error",
-                                description: error
-                            });
-                        } else {
-                            showToast({
-                                action: "success",
-                                title: "Role Updated",
-                                description: `${selectedMember?.name}'s role updated successfully`,
-                            });
-                            selectedOrganizationId && fetchMemberData(
-                                setLoading,
-                                setError,
-                                setMembers,
-                                setRoles,
-                                selectedOrganizationId
-                            );
-                        }
-                    }}
+                    user={user}
+                    onRoleUpdated={handleUpdateMemberRole}
                 />
                 <AlertDialog
                     isOpen={isChangingStatus}
@@ -320,30 +457,19 @@ export default function MembersScreen() {
                             <Button variant="outline" onPress={() => setIsChangingStatus(false)}>
                                 <ButtonText>Cancel</ButtonText>
                             </Button>
-                            <Button onPress={() => {
-                                setIsChangingStatus(false)
-                                updateMemberStatus(
-                                    selectedMember,
-                                    selectedOrganizationId,
-                                    async () => {
-                                        showToast({
-                                            action: "success",
-                                            title: "Status Updated",
-                                            description: `${selectedMember?.name}'s status updated successfully`,
-                                        });
-
-                                        if (selectedOrganizationId) {
-                                            await fetchMemberData(
-                                                setLoading,
-                                                setError,
-                                                setMembers,
-                                                setRoles,
-                                                selectedOrganizationId
-                                            );
-                                        }
+                            <Button
+                                onPress={() => {
+                                    if (!selectedMember) {
+                                        return;
                                     }
-                                )
-                            }}>
+
+                                    handleUpdateMemberStatus(
+                                        !selectedMember.active,
+                                        selectedMember.id
+                                    );
+                                }}
+                                isDisabled={statusChanging}
+                            >
                                 <ButtonText>Confirm</ButtonText>
                             </Button>
                         </AlertDialogFooter>
@@ -353,29 +479,8 @@ export default function MembersScreen() {
                     isOpen={isAddMember}
                     onClose={() => setIsAddMember(false)}
                     roleList={roles}
-                    user={members.find(member => member.id === fetchedUserInfo?.id)}
-                    onMemberAdded={() => {
-                        if (error) {
-                            showToast({
-                                action: "warning",
-                                title: "Error",
-                                description: error
-                            });
-                        } else {
-                            showToast({
-                                action: "success",
-                                title: "Role Updated",
-                                description: 'Successfully added member',
-                            });
-                            selectedOrganizationId && fetchMemberData(
-                                setLoading,
-                                setError,
-                                setMembers,
-                                setRoles,
-                                selectedOrganizationId
-                            );
-                        }
-                    }}
+                    user={user}
+                    onMemberAdded={handleAddMember}
                 />
             </KeyboardAvoidingView>
         </>

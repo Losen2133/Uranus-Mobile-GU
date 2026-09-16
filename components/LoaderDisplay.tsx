@@ -5,7 +5,7 @@ import { VStack } from "./ui/vstack";
 
 type LoaderDisplayProps = {
   type: "error" | "loading";
-  message: string;
+  message: string | null;
   textColor?: string;
 };
 

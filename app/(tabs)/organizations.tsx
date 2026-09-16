@@ -1,6 +1,6 @@
 import useAppToast from "@/components/AppToast";
-import LoaderDisplay from "@/components/LoaderDisplay";
 import OrgModalAction from "@/components/OrgModalAction";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { useFam } from "@/hooks/useFamOpacity";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { OrganizationData } from "@/interfaces/interfaces";
-import { deleteOrganization, fetchOrganizations } from "@/utils/apiFetch";
+import { createOrganization, deleteOrganization, fetchOrganizations, updateOrganization } from "@/utils/apiFetch";
 import { useFocusEffect, useNavigation } from "expo-router";
 import { EllipsisVertical, Plus, SquarePen, Trash2 } from "lucide-react-native";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
@@ -25,13 +25,13 @@ import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, SectionList,
 
 export default function OrganizationsScreen() {
     const [organizations, setOrganizations] = useState<OrganizationData[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [openOrgModal, setOpenOrgModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [toEditOrg, setToEditOrg] = useState<OrganizationData>();
     const [isDeletingOrg, setIsDeletingOrg] = useState(false);
+    const [deletingOrg, setDeletingOrg] = useState(false);
     const [toDeleteOrg, setToDeleteOrg] = useState<OrganizationData>();
     const { fetchedUserInfo } = useUserInfo();
     const { selectedOrganizationId, setSelectedOrganizationId } = useOrganization();
@@ -52,27 +52,137 @@ export default function OrganizationsScreen() {
                     </Button>
         });
     })
+    const handleFetchOrganizations = async () => {
+        // setLoading(true);
 
-    const handleRefresh = () => {
-        setRefreshing(true);
-        fetchOrganizations(
-            setLoading,
-            setError,
-            setOrganizations
-        );
-        setRefreshing(false);
+        try {
+            await fetchOrganizations(setOrganizations);
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : 'An unexpected error occurred';
+
+            showToast({
+                action: 'error',
+                title: 'Failed to Fetch Organizations',
+                description: 'Failed to fetch available organizations, please try again later.',
+            });
+        } finally {
+            // setLoading(false);
+        }
+    };
+
+    const handleOrgAction = async (
+        orgName: string,
+        orgDesc: string
+    ) => {
+
+        try {
+            if (editMode && toEditOrg) {
+                await updateOrganization(
+                    orgName,
+                    orgDesc,
+                    toEditOrg.id
+                );
+
+                showToast({
+                    action: "success",
+                    title: "Organization Edited",
+                    description: "Organization edited successfully",
+                });
+            } else {
+                await createOrganization(
+                    orgName,
+                    orgDesc
+                );
+
+                showToast({
+                    action: "success",
+                    title: "Organization Created",
+                    description: "Organization created successfully",
+                });
+            }
+
+            setOpenOrgModal(false);
+            setEditMode(false);
+
+            await handleFetchOrganizations();
+
+        } catch (error) {
+            setOpenOrgModal(false);
+            setEditMode(false);
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Organization Action Failed",
+                description: "Failed to process action, please try again later.",
+            });
+        }
+    };
+
+    const handleDeleteOrganization = async () => {
+        if (!toDeleteOrg) {
+            return;
+        }
+
+        try {
+            setDeletingOrg(true)
+            await deleteOrganization(toDeleteOrg.id);
+
+            setIsDeletingOrg(false);
+            setDeletingOrg(false);
+            setToDeleteOrg(undefined);
+            setSelectedOrganizationId(null);
+
+            showToast({
+                action: "success",
+                title: "Organization Deleted",
+                description: "Organization deleted successfully",
+            });
+
+            await handleFetchOrganizations();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : String(error);
+
+            setIsDeletingOrg(false);
+            setDeletingOrg(false);
+            setToDeleteOrg(undefined);
+            setSelectedOrganizationId(null);
+
+            showToast({
+                action: "error",
+                title: "Failed to Delete Organization",
+                description: "Failed to delete organization, please try again later.",
+            });
+        }
+    };
+
+    const handleRefresh = async () => {
+        // setLoading(true);
+        await handleFetchOrganizations();
+        // setLoading(false);
     }
 
     useFocusEffect(
         useCallback(() => {
-            fetchOrganizations(
-                setLoading,
-                setError,
-                setOrganizations
-            );
-            return () => {
-                setLoading(true);
+            const fetchData = async () => {
+                try {
+                    await handleFetchOrganizations();
+                } finally {
+                    setLoading(false);
+                }
             };
+
+            fetchData();
         }, [])
     );
 
@@ -153,16 +263,8 @@ export default function OrganizationsScreen() {
                         </Input>
                     </Box>
                     {loading ? (
-                        <LoaderDisplay 
-                            type="loading"
-                            message="Loading Organizations..."
-                        />
-                    ) : error ? (
-                        <LoaderDisplay 
-                            type="error"
-                            message={error}
-                        />
-                    ) : isOrganizationsEmpty ? (
+                        <SkeletonLoading />
+                    ) : isOrganizationsEmpty && !loading ? (
                         <Center className="flex-1">
                             <Text>There are no organizations available</Text>
                         </Center>
@@ -263,30 +365,9 @@ export default function OrganizationsScreen() {
                     isOpen={openOrgModal}
                     editMode={editMode}
                     toEditOrg={toEditOrg}
-                    errorSetter={setError}
                     onOrgEdit={() => setEditMode(false)}
                     onClose={() => setOpenOrgModal(false)}
-                    onOrgAction={ () => {
-                        if (error) {
-                            showToast({
-                                action: "warning",
-                                title: "Error",
-                                description: error
-                            });
-                        } else {
-                            showToast({
-                                action: "success",
-                                title: `Organization ${(editMode ? "Editted" : "Created")}`,
-                                description: ` Organization ${(editMode ? "editted" : "created")} successfully`,
-                            });
-                            fetchOrganizations(
-                                setLoading,
-                                setError,
-                                setOrganizations
-                            )
-                        }
-                        
-                    }}
+                    onOrgAction={handleOrgAction}
                 />
                 <AlertDialog
                     isOpen={isDeletingOrg}
@@ -311,27 +392,11 @@ export default function OrganizationsScreen() {
                             <Button variant="outline" onPress={() => setIsDeletingOrg(false)}>
                                 <ButtonText>Cancel</ButtonText>
                             </Button>
-                            <Button onPress={() => {
+                            <Button 
+                            isDisabled={deletingOrg}
+                            onPress={() => {
                                 setIsDeletingOrg(false)
-                                deleteOrganization(
-                                    toDeleteOrg?.id,
-                                    async () => {
-                                        showToast({
-                                            action: "success",
-                                            title: "Organization Deleted",
-                                            description: `${toDeleteOrg?.name} deleted successfully`,
-                                        });
-
-                                        if (toDeleteOrg) {
-                                            fetchOrganizations(
-                                                setLoading,
-                                                setError,
-                                                setOrganizations
-                                            );
-                                            setToDeleteOrg(undefined);
-                                        }
-                                    }
-                                )
+                                handleDeleteOrganization();
                             }}>
                                 <ButtonText>Confirm</ButtonText>
                             </Button>

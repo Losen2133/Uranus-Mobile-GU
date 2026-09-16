@@ -2,6 +2,8 @@ import { verifyMe } from '@/utils/apiFetch';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useUserInfo } from './useUserInfo';
+import { useUserSettings } from './useUserSettings';
 
 const AuthContext = createContext<{
     userToken: string | null;
@@ -18,6 +20,8 @@ const AuthContext = createContext<{
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [userToken, setUserToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { setFetchedUserInfo, fetchedUserInfo } = useUserInfo();
+    const { setFetchedUserSettings, fetchedUserSettings } = useUserSettings();
     const router = useRouter();
     const URANUS_URL = 'https://uranus.luscsusjr.dpdns.org'
 
@@ -31,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return;
                 }
 
-                await verifyMe();
+                await verifyMe(setFetchedUserInfo, setFetchedUserSettings);
 
                 setUserToken(token);
 
@@ -52,9 +56,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userToken,
             isLoading,
             signIn: async (token: string) => {
+                // Save token first
                 await SecureStore.setItemAsync('userToken', token);
+
+                // Verify token and fetch user data/settings
+                await verifyMe(
+                    setFetchedUserInfo,
+                    setFetchedUserSettings
+                );
+
+                // Only mark the user as authenticated after
+                // user information has been fetched
                 setUserToken(token);
 
+                // Go through app/index.tsx
                 router.replace('/');
             },
             signOut: async () => {
@@ -80,6 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // 3. ALWAYS clear the local storage and state, no matter what happened above
                     await SecureStore.deleteItemAsync('userToken');
                     setUserToken(null);
+                    setFetchedUserInfo(null);
+                    setFetchedUserSettings(null);
                     router.replace('/(auth)/login');
                 }
             },

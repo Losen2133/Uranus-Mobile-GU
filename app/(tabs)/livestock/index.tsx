@@ -1,5 +1,6 @@
-import LoaderDisplay from "@/components/LoaderDisplay";
+import useAppToast from "@/components/AppToast";
 import SelectOrgDisplay from "@/components/SelectOrgDisplay";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
@@ -24,14 +25,14 @@ import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, SectionList,
 export default function LivestockScreen() {
     const { selectedOrganizationId } = useOrganization();
     const navigation = useNavigation();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [livestockData, setLivestockData] = useState<LivestockData[]>([]);
     const [query, setQuery] = useState<string>('');
     const [refreshing, setRefreshing] = useState(false);
     const [selectedType, setSelectedType] = useState<"all" | "plant" | "fish">("all");
     const router = useRouter();
     const { famOpacity, setFamOpacity } = useFam();
+    const { showToast } = useAppToast();
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -56,31 +57,54 @@ export default function LivestockScreen() {
         });
     });
 
+    const handleFetchLivestock = async () => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            await fetchLivestockData(
+                selectedOrganizationId,
+                setLivestockData
+            );
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : 'An unexpected error occurred';
+
+            showToast({
+                action: "error",
+                title: "Failed to Fetch Livestock",
+                description: "Failed to fetch available livestocks, please try again later.",
+            });
+        } finally {
+            // setLoading(false);
+        }
+    };
+
+
+
     useFocusEffect(
         useCallback(() => {
-            if (selectedOrganizationId) {
-                fetchLivestockData(
-                    setLoading,
-                    setError,
-                    setLivestockData,
-                    selectedOrganizationId
-                );
-                // console.log(livestockData);
+            const fetchData = async () => {
+                try {
+                    await handleFetchLivestock();
+                } finally {
+                    setLoading(false);
+                }
             }
-            // console.log('Selected Organization ID:', selectedOrganizationId);
-            // console.log('Livestock Data:', livestockData);
-            // console.log('Livestock Profile Data:', livestockProfileData);
+            if (selectedOrganizationId) {
+                fetchData();
+            }
         }, [selectedOrganizationId])
     );
 
     const handleRefresh = () => {
         setRefreshing(true);
-        selectedOrganizationId && fetchLivestockData(
-            setLoading,
-            setError,
-            setLivestockData,
-            selectedOrganizationId
-        );
+        selectedOrganizationId && handleFetchLivestock();
         setRefreshing(false);
     }
 
@@ -187,16 +211,8 @@ export default function LivestockScreen() {
                             </Picker>
                         </Box>
                         {loading ? (
-                            <LoaderDisplay
-                                type="loading"
-                                message="Loading Livestocks..."
-                            />
-                        ) : error ? (
-                            <LoaderDisplay
-                                type="error"
-                                message={error}
-                            />
-                        ) : isLivestocksEmpty ? (
+                            <SkeletonLoading />
+                        ) : isLivestocksEmpty && !loading ? (
                             <Center className="flex-1">
                                 <Text>There are no livestocks available</Text>
                             </Center>

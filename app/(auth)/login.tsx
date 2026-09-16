@@ -10,8 +10,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserInfo } from "@/hooks/useUserInfo";
-import { useUserSettings } from "@/hooks/useUserSettings";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform } from "react-native";
@@ -23,10 +21,8 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const URANUS_URL = 'https://uranus.luscsusjr.dpdns.org'
-
-    const { setFetchedUserInfo } = useUserInfo();
+    
     const { signIn } = useAuth();
-    const { setFetchedUserSettings } = useUserSettings();
 
     const [isInvalidEmail, setIsInvalidEmail] = useState(false);
     const [isInvalidPassword, setIsInvalidPassword] = useState(false);
@@ -58,9 +54,7 @@ export default function LoginScreen() {
 
         if (response.ok) {
             // Success: Update global state. The index.tsx redirect will handle navigation!
-            await signIn(data.token); 
-            setFetchedUserInfo(data.user);
-            setFetchedUserSettings(data.user.settings);
+            await signIn(data.token);
         } else {
             // Alert.alert("Login Failed", data.message || "Invalid credentials.");
             showToast({

@@ -1,6 +1,4 @@
-import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationMember, Role } from "@/interfaces/interfaces";
-import { updateMemberRole } from "@/utils/apiFetch";
 import { capitalize } from "@/utils/stringUtils";
 import { Picker } from '@react-native-picker/picker';
 import { useEffect, useState } from "react";
@@ -18,7 +16,10 @@ type MemberChangeRoleModalProps = {
     selectedMember: OrganizationMember | undefined;
     roleList: Role[];
     user: OrganizationMember | undefined;
-    onRoleUpdated: () => void | Promise<void>
+    onRoleUpdated: (
+        role: string,
+        memberId: number
+    ) => void | Promise<void>;
 }
 
 export default function MemberChangeRoleModal({
@@ -32,7 +33,7 @@ export default function MemberChangeRoleModal({
     const availableRoles = roleList.filter(
         (role) => !user || role.id > user?.role_id
     )
-    const { selectedOrganizationId } = useOrganization();
+    const [changingRole, setChangingRole] = useState(false);
     const [selectedRole, setSelectedRole] = useState(selectedMember?.role_id);
     const [confirmChangeRoleVisible, setConfirmChangeRoleVisible] = useState(false);
 
@@ -87,7 +88,7 @@ export default function MemberChangeRoleModal({
                         </Button>
                         <Button
                             onPress={() => setConfirmChangeRoleVisible(true)}
-                            isDisabled={selectedMember?.role_id === selectedRole}
+                            isDisabled={selectedMember?.role_id === selectedRole || changingRole}
                         >
                             <ButtonText>Change</ButtonText>
                         </Button>
@@ -115,17 +116,26 @@ export default function MemberChangeRoleModal({
                         <Button variant="outline" onPress={() => setConfirmChangeRoleVisible(false)}>
                             <ButtonText>Cancel</ButtonText>
                         </Button>
-                        <Button onPress={() => {
-                            setConfirmChangeRoleVisible(false)
-                            updateMemberRole(
-                                selectedRole,
-                                availableRoles, 
-                                selectedMember,
-                                selectedOrganizationId,
-                                onClose,
-                                onRoleUpdated
-                            )
-                        }}>
+                        <Button
+                            onPress={ async () => {
+                                setChangingRole(true)
+                                const role = availableRoles.find(
+                                    role => role.id === selectedRole
+                                );
+
+                                if (!role || !selectedMember) {
+                                    return;
+                                }
+
+                                setConfirmChangeRoleVisible(false);
+
+                                await onRoleUpdated(
+                                    role.name,
+                                    selectedMember.id
+                                );
+                                setChangingRole(false)
+                            }}
+                        >
                             <ButtonText>Confirm</ButtonText>
                         </Button>
                     </AlertDialogFooter>

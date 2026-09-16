@@ -56,18 +56,18 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <AuthProvider>
-      <SafeAreaListener
-        onChange={({ insets }) => {
-          Uniwind.updateInsets(insets);
-        }}
-      >
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <GluestackUIProvider mode="dark">
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <FamProvider>
-                <UserInfoProvider>
-                  <UserSettingsProvider>
+    <UserInfoProvider>
+      <UserSettingsProvider>
+        <AuthProvider>
+          <SafeAreaListener
+            onChange={({ insets }) => {
+              Uniwind.updateInsets(insets);
+            }}
+          >
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <GluestackUIProvider mode="dark">
+                <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                  <FamProvider>
                     <Stack>
                       <Stack.Screen
                         name="index"
@@ -76,13 +76,13 @@ function RootLayoutNav() {
                       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                     </Stack>
-                  </UserSettingsProvider>
-                </UserInfoProvider>
-              </FamProvider>
-            </ThemeProvider>
-          </GluestackUIProvider>
-        </GestureHandlerRootView>
-      </SafeAreaListener>
-    </AuthProvider>
+                  </FamProvider>
+                </ThemeProvider>
+              </GluestackUIProvider>
+            </GestureHandlerRootView>
+          </SafeAreaListener>
+        </AuthProvider>
+      </UserSettingsProvider>
+    </UserInfoProvider>
   );
 }

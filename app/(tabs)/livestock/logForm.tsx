@@ -24,12 +24,66 @@ export default function LivestockLogFormPage() {
     const [isInvalidLogDescription, setIsInvalidLogDescription] = useState(false);
     const [concernSeverity, setConcernSeverity] = useState<"low" | "moderate" | "high" | "critical">()
     const [isCreatingLog, setIsCreatingLog] = useState(false);
+    const [loading, setLoading] = useState(false);
     const { showToast } = useAppToast();
     const router = useRouter();
 
-    // useEffect(() => {
-    //     console.log(selectedLivestockId);
-    // })
+    const handleCreateLivestockLog = async () => {
+        if (!logType) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            if (logType === "log") {
+                await createLivestockLog({
+                    logType: "log",
+                    selectedLivestockId,
+                    image,
+                    logTitle,
+                    logDescription,
+                });
+
+                showToast({
+                    action: "success",
+                    title: "Log Created",
+                    description: `${logTitle}, created successfully`,
+                });
+            } else {
+                await createLivestockLog({
+                    logType: "concern",
+                    concernSeverity,
+                    selectedLivestockId,
+                    image,
+                    logTitle,
+                    logDescription,
+                });
+
+                showToast({
+                    action: "success",
+                    title: "Concern Created",
+                    description: `${logTitle}, created successfully`,
+                });
+            }
+
+            setIsCreatingLog(false);
+
+            router.back();
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Log Creation Failed",
+                description: `Failed to create ${logType === 'log' ? "log" : "concern"}, please try again later.`
+            });
+
+            setIsCreatingLog(false);
+
+            router.back();
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const pickImage = async () => {
         const permission =
@@ -166,75 +220,8 @@ export default function LivestockLogFormPage() {
                             <ButtonText>Cancel</ButtonText>
                         </Button>
                         <Button
-                            onPress={async () => {
-                                if (!logType) {
-                                    return;
-                                }
-
-                                try {
-                                    if (logType === "log") {
-                                        await createLivestockLog({
-                                            closerCallBack: () => {
-                                                setIsCreatingLog(false);
-                                            },
-                                            onLogCreated: async () => {
-                                                showToast({
-                                                    action: "success",
-                                                    title: "Log Created",
-                                                    description: `${logTitle}, created successfully`,
-                                                });
-                                                // router.dismissTo({
-                                                //     pathname: "/(tabs)/livestock/logs",
-                                                //     params: {
-                                                //         livestockId: selectedLivestockId.toString()
-                                                //     }
-                                                // });
-                                                router.back()
-                                            },
-                                            logType: "log",
-                                            selectedLivestockId,
-                                            image,
-                                            logTitle,
-                                            logDescription,
-                                        });
-                                    } else {
-                                        await createLivestockLog({
-                                            closerCallBack: () => {
-                                                setIsCreatingLog(false);
-                                            },
-                                            onLogCreated: async () => {
-                                                showToast({
-                                                    action: "success",
-                                                    title: "Concern Created",
-                                                    description: `${logTitle}, created successfully`,
-                                                });
-                                                router.back()
-                                            },
-                                            logType: "concern",
-                                            concernSeverity,
-                                            selectedLivestockId,
-                                            image,
-                                            logTitle,
-                                            logDescription,
-                                        });
-                                    }
-                                } catch (error) {
-                                    showToast({
-                                        action: "error",
-                                        title: "Log Creation Failed",
-                                        description:
-                                            error instanceof Error
-                                                ? error.message
-                                                : `Failed to create ${logTitle}, please try again`,
-                                    });
-                                    router.dismissTo({
-                                        pathname: "/(tabs)/livestock/logs",
-                                        params: {
-                                            livestockId: selectedLivestockId.toString()
-                                        }
-                                    });
-                                }
-                            }}
+                            onPress={handleCreateLivestockLog}
+                            isDisabled={loading}
                         >
                             <ButtonText>Confirm</ButtonText>
                         </Button>

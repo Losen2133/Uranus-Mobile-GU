@@ -26,7 +26,6 @@ export default function ConcernResolutionModal({
     const [actionTaken, setActionTaken] = useState<string | undefined>();
     const [isInvalidActionTaken, setIsInvalidActionTaken] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const { showToast } = useAppToast();
     
     useEffect(() => {
@@ -35,42 +34,51 @@ export default function ConcernResolutionModal({
         }
     }, [isOpen])
 
-    const handleSubmit = () => {
-        if(!actionTaken) {
+    const handleSubmit = async () => {
+        if (!actionTaken) {
             setIsInvalidActionTaken(true);
-            return
+            return;
         }
 
-        setLoading(true)
-        resolveConcernLog(
-            livestockId,
-            logData?.id,
-            actionTaken,
-            setError,
-            async () => {
-                try {
-                    onClose();
-                    await onResolution();
-                    setLoading(false);
-                    showToast({
-                        action: "success",
-                        title: "Log Resolved Successfully",
-                        description: "Log has been successfully resolved."
-                    });
-                } catch (error) {
-                    showToast({
-                        action: "error",
-                        title: "Log Failed to Resolve",
-                        description:
-                            error instanceof Error
-                                ? error.message
-                                : "Failed to resolve concern",
-                    });
-                    setLoading(false);
-                }
-            }
-        )
-    }
+        if (!logData?.id) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await resolveConcernLog(
+                livestockId,
+                logData.id,
+                actionTaken
+            );
+
+            onClose();
+
+            await onResolution();
+
+            showToast({
+                action: "success",
+                title: "Log Resolved Successfully",
+                description: "Log has been successfully resolved.",
+            });
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "Failed to resolve concern";
+
+            onClose();
+
+            showToast({
+                action: "error",
+                title: "Concern Failed to Resolve",
+                description: "Failed to resolve concern, please try again later.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Modal
@@ -106,7 +114,7 @@ export default function ConcernResolutionModal({
                     </Button>
                     <Button
                         isDisabled={loading}
-                        onPress={ () => handleSubmit()}
+                        onPress={handleSubmit}
                     >
                         <ButtonText>Submit</ButtonText>
                     </Button>

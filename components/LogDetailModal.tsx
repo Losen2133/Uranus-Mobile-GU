@@ -41,6 +41,47 @@ export default function LogDetailModal ({
     const [loading, setLoading] = useState(false);
     const { showToast } = useAppToast();  
     
+    const handleDeleteLog = async () => {
+        if (!logData?.livestock_id || !logData?.id) {
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await deleteLivestockLog(
+                logData.livestock_id,
+                logData.id
+            );
+
+            setIsDeletingLog(false);
+            onClose();
+
+            await onAction();
+
+            showToast({
+                action: "success",
+                title: "Log Deleted Successfully",
+                description: "Log has been successfully deleted.",
+            });
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "Failed to delete log";
+
+            setIsDeletingLog(false);
+            onClose();
+
+            showToast({
+                action: "error",
+                title: "Log Failed to Get Deleted",
+                description: "Failed to delete log, please try again later",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -144,42 +185,20 @@ export default function LogDetailModal ({
                     </AlertDialogHeader>
                     <AlertDialogBody className="mt-3 mb-4">
                         <Text className="text-sm text-muted-foreground">
-                            Confirming this will delete the log {logData?.data.title}, this action cannot be undone.
+                            Confirming this will delete the log {logData?.data.title}.
+                        </Text>
+                        <Text className="text-sm text-muted-foreground text-red-500">
+                            This action cannot be undone.
                         </Text>
                     </AlertDialogBody>
                     <AlertDialogFooter>
                         <Button variant="outline" onPress={() => setIsDeletingLog(false)}>
                             <ButtonText>Cancel</ButtonText>
                         </Button>
-                        <Button isDisabled={loading} onPress={() => {
-                            setLoading(true)
-                            deleteLivestockLog(
-                                logData,
-                                async () => {
-                                    try {
-                                        setIsDeletingLog(false)
-                                        onClose();
-                                        await onAction();
-                                        setLoading(false)
-                                        showToast({
-                                            action: "success",
-                                            title: "Log Deleted Successfully",
-                                            description: "Log has been successfully deleted."
-                                        });
-                                    } catch (error) {
-                                        showToast({
-                                            action: "error",
-                                            title: "Log Failed to get Deleted",
-                                            description:
-                                                error instanceof Error
-                                                    ? error.message
-                                                    : "Failed to delete log",
-                                        });
-                                        setLoading(false);
-                                    }
-                                }
-                            )
-                        }}>
+                        <Button
+                            isDisabled={loading}
+                            onPress={handleDeleteLog}
+                        >
                             <ButtonText>Confirm</ButtonText>
                         </Button>
                     </AlertDialogFooter>

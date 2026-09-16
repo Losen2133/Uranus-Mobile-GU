@@ -1,6 +1,5 @@
 import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationMember, Role } from "@/interfaces/interfaces";
-import { addMember } from "@/utils/apiFetch";
 import { capitalize } from "@/utils/stringUtils";
 import { Picker } from "@react-native-picker/picker";
 import { useEffect, useState } from "react";
@@ -20,7 +19,10 @@ type AddMemberModalProps = {
     onClose: () => void;
     roleList: Role[];
     user: OrganizationMember | undefined;
-    onMemberAdded: () => void | Promise<void>;
+    onMemberAdded: (
+        email: string,
+        role: string
+    ) => void | Promise<void>;
 }
 
 export default function AddMemberModal({
@@ -36,6 +38,7 @@ export default function AddMemberModal({
     const { selectedOrganizationId } = useOrganization();
     const [email, setEmail] = useState('');
     const [isInvalidEmail, setIsInvalidEmail] = useState(false);
+    const [addingMember, setAddingMember] = useState(false);
     const [selectedRole, setSelectedRole] = useState<number | undefined>(
         roleList[0]?.id
     );
@@ -127,7 +130,7 @@ export default function AddMemberModal({
                         </Button>
                         <Button
                             onPress={() => setConfirmAddMemberVisibile(true)}
-                            isDisabled={!email}
+                            isDisabled={!email || addingMember}
                         >
                             <ButtonText>Add</ButtonText>
                         </Button>
@@ -154,17 +157,26 @@ export default function AddMemberModal({
                         <Button variant="outline" onPress={() => setConfirmAddMemberVisibile(false)}>
                             <ButtonText>Cancel</ButtonText>
                         </Button>
-                        <Button onPress={() => {
-                            setConfirmAddMemberVisibile(false)
-                            addMember(
-                                email,
-                                selectedRole,
-                                availableRoles,
-                                selectedOrganizationId,
-                                onClose,
-                                onMemberAdded
-                            )
-                        }}>
+                        <Button
+                            onPress={async () => {
+                                setAddingMember(true);
+                                const role = availableRoles.find(
+                                    role => role.id === selectedRole
+                                );
+
+                                if (!role || !selectedOrganizationId) {
+                                    return;
+                                }
+
+                                setConfirmAddMemberVisibile(false);
+
+                                await onMemberAdded(
+                                    email,
+                                    role.name
+                                );
+                                setAddingMember(false);
+                            }}
+                        >
                             <ButtonText>Confirm</ButtonText>
                         </Button>
                     </AlertDialogFooter>

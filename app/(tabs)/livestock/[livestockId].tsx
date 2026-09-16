@@ -1,7 +1,7 @@
 import useAppToast from "@/components/AppToast";
 import { FishTypeDetails } from "@/components/LivestockDetails/FishTypeDetails";
 import { PlantTypeDetails } from "@/components/LivestockDetails/PlantTypeDetails";
-import LoaderDisplay from "@/components/LoaderDisplay";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import {
     Actionsheet,
     ActionsheetContent,
@@ -38,8 +38,7 @@ export default function LivestockDetailPage() {
         id: Number(livestockId),
         livestockName: String(livestockName)
     }
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [livestockData, setLivestockData] = useState<LivestockData>();
     const { selectedOrganizationId } = useOrganization();
     const { fetchedUserSettings } = useUserSettings();
@@ -50,23 +49,156 @@ export default function LivestockDetailPage() {
     const router = useRouter();
     const [userRole, setUserRole] = useState<UserOrgRoleResponse>();
     const { fetchedUserInfo } = useUserInfo();
-    const [isLoadingDelete, setIsLoadingDelete] = useState();
     const [isDeletingLivestock, setIsDeletingLivestock] = useState(false);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (selectedOrganizationId && livestockId && livestockName) {
+    const handleFetchLivestock = async () => {
+        if (!selectedOrganizationId || !livestockId) {
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            await Promise.all([
                 getMyOrgRole(
                     selectedOrganizationId,
                     setUserRole
-                )
+                ),
                 fetchIndividualLivestock(
-                    setLoading,
-                    setError,
                     setLivestockData,
-                    passedParams.id,
+                    Number(livestockId),
                     selectedOrganizationId
-                );
+                ),
+            ]);
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Fetch Livestock",
+                description: message,
+            });
+        } finally {
+            // setLoading(false);
+        }
+    };
+
+    const handleProceedToNextPhase = async () => {
+        if (!selectedOrganizationId || !livestockId) {
+            return;
+        }
+
+        try {
+            await proceedToNextPhase(
+                Number(livestockId),
+                selectedOrganizationId
+            );
+
+            showToast({
+                action: "success",
+                title: "Successfully proceeded to the next phase.",
+                description:
+                    "The livestock has been updated to the next phase.",
+            });
+
+            await handleFetchLivestock();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Proceed",
+                description: "Failed to proceed to next phase, please try again later.",
+            });
+        }
+    };
+
+    const handleHarvestLivestock = async () => {
+        if (!selectedOrganizationId || !livestockId) {
+            return;
+        }
+
+        try {
+            await harvestLivestock(
+                Number(livestockId),
+                selectedOrganizationId
+            )
+
+            showToast({
+                action: "success",
+                title: "Successfully harvested livestock.",
+                description:
+                    "The livestock has been harvested.",
+            });
+
+            await handleFetchLivestock();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Harvest",
+                description: "Failed to harvest livestock, please try again later.",
+            });
+        }
+    };
+
+    const handleDeleteLivestock = async () => {
+        if (!selectedOrganizationId || !livestockId) {
+            return;
+        }
+
+        try {
+            await deleteLivestock(
+                Number(livestockId),
+                selectedOrganizationId
+            )
+
+            showToast({
+                action: "success",
+                title: "Successfully deleted livestock.",
+                description:
+                    "The livestock has been deleted.",
+            });
+
+            router.back();
+
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Delete",
+                description: "Failed to delete livestock, please try again later.",
+            });
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            const fetchData = async () => {
+                try {
+                    await handleFetchLivestock();
+                } finally {
+                    setLoading(false);
+                }
+            }
+            if (selectedOrganizationId && livestockId && livestockName) {
+                fetchData();
             }
         }, [selectedOrganizationId, livestockId, livestockName])
     );
@@ -98,6 +230,9 @@ export default function LivestockDetailPage() {
         livestockData?.type === "fish" &&
         livestockData.data?.growth_days > 0;
 
+    const isHarvested =
+            livestockData?.harvested
+
     const isHarvestDisabled =
         livestockData?.type === "plant" &&
         livestockData.data.phase !== "growbed";
@@ -119,31 +254,16 @@ export default function LivestockDetailPage() {
             }}
         />
             {loading ? (
-                <LoaderDisplay
-                    type="loading"
-                    message="Fetching Livestock Details..."
-                />
-            ) : error ? (
-                <LoaderDisplay
-                    type="error"
-                    message={error}
-                />
+                <SkeletonLoading skeletonVariant="show" />
+            ) : !livestockData ? (
+                <Center className="flex-1">
+                    <Text>Failed to fetch livestock information</Text>
+                </Center>
             ) : (
                 <>
                     <VStack className="flex-1 p-5"
                         space="md"
                     >
-                        {/* <Center>
-                            <Image
-                                size="xl"
-                                className="border-3 border-white rounded-full"
-                                source={{
-                                    uri: `${livestockData?.image_url}`
-                                }}
-                                alt="Plant Image Here"
-                            />
-                        </Center> */}
-
                         <Center className=" mb-3">
                             {livestockData?.image_url ? (
                                 <ImageViewer
@@ -218,7 +338,7 @@ export default function LivestockDetailPage() {
                             setShowActionsheet(false)
                             setIsChangingPhase(true)
                         }} className={`m-2 ${
-                            isHarvestDisabled ? "bg-gray-200" : "bg-white"
+                            isChangePhaseDisabled ? "bg-gray-200" : "bg-white"
                         }`} disabled={isChangePhaseDisabled}>
                             <ActionsheetItemText className={isChangePhaseDisabled ? "text-gray-400" : "text-black"}>Proceed to next Phase</ActionsheetItemText>
                         </ActionsheetItem>
@@ -229,13 +349,13 @@ export default function LivestockDetailPage() {
                             setShowActionsheet(false);
                             setIsHarvesting(true);
                         }}
-                        disabled={isHarvestDisabled}
+                        disabled={isHarvestDisabled || isHarvested}
                         className={`m-2 ${
-                            isHarvestDisabled ? "bg-gray-200" : "bg-white"
+                            isHarvestDisabled || isHarvested ? "bg-gray-200" : "bg-white"
                         }`}
                     >
                         <ActionsheetItemText
-                            className={isHarvestDisabled ? "text-gray-400" : "text-black"}
+                            className={isHarvestDisabled || isHarvested ? "text-gray-400" : "text-black"}
                         >
                             Harvest Livestock
                         </ActionsheetItemText>
@@ -323,48 +443,12 @@ export default function LivestockDetailPage() {
                             onPress={() => {
                                 if (isChangingPhase) {
                                     setIsChangingPhase(false);
-                                    proceedToNextPhase(
-                                        passedParams.id,
-                                        selectedOrganizationId,
-                                        async () => {
-                                            showToast({
-                                                action: "success",
-                                                title: "Successfully proceeded to the next phase.",
-                                                description: "The livestock has been updated to the next phase."
-                                            });
-
-                                            fetchIndividualLivestock(
-                                                setLoading,
-                                                setError,
-                                                setLivestockData,
-                                                passedParams.id,
-                                                selectedOrganizationId
-                                            );
-                                        }
-                                    );
+                                    handleProceedToNextPhase();
                                 }
 
                                 if (isHarvesting) {
                                     setIsHarvesting(false);
-                                    harvestLivestock(
-                                        passedParams.id,
-                                        selectedOrganizationId,
-                                        async () => {
-                                            showToast({
-                                                action: "success",
-                                                title: "Successfully harvested livestock.",
-                                                description: "The livestock has been marked as harvested."
-                                            });
-
-                                            fetchIndividualLivestock(
-                                                setLoading,
-                                                setError,
-                                                setLivestockData,
-                                                passedParams.id,
-                                                selectedOrganizationId
-                                            );
-                                        }
-                                    )
+                                    handleHarvestLivestock();
                                 }
                             }}
                         >
@@ -386,7 +470,10 @@ export default function LivestockDetailPage() {
                     </AlertDialogHeader>
                     <AlertDialogBody className="mt-3 mb-4">
                         <Text className="text-sm text-muted-foreground">
-                            Confirming this will delete the livestock {livestockData?.livestock_name}, this action cannot be undone.
+                            Confirming this will delete the livestock {livestockData?.livestock_name}.
+                        </Text>
+                        <Text className="text-sm text-muted-foreground text-red-500">
+                            This action cannot be undone.
                         </Text>
                     </AlertDialogBody>
                     <AlertDialogFooter>
@@ -394,33 +481,9 @@ export default function LivestockDetailPage() {
                             <ButtonText>Cancel</ButtonText>
                         </Button>
                         <Button isDisabled={loading} onPress={() => {
-                            setLoading(true)
-                            deleteLivestock(
-                                livestockData?.id,
-                                selectedOrganizationId,
-                                async () => {
-                                    try {
-                                        setIsDeletingLivestock(false)
-                                        router.back();
-                                        setLoading(false)
-                                        showToast({
-                                            action: "success",
-                                            title: "Livestock Deleted Successfully",
-                                            description: "Livestock has been successfully deleted."
-                                        });
-                                    } catch (error) {
-                                        showToast({
-                                            action: "error",
-                                            title: "LIvestock Failed to get Deleted",
-                                            description:
-                                                error instanceof Error
-                                                    ? error.message
-                                                    : "Failed to delete livestock",
-                                        });
-                                        setLoading(false);
-                                    }
-                                }
-                            )
+                            setIsDeletingLivestock(false);
+                            setShowActionsheet(false);
+                            handleDeleteLivestock();
                         }}>
                             <ButtonText>Confirm</ButtonText>
                         </Button>

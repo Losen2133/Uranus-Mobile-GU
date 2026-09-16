@@ -1,6 +1,6 @@
 import useAppToast from "@/components/AppToast";
 import { livestockDescriptionField, livestockTypeField, numberField, speciesNameField } from "@/components/FormFields";
-import LoaderDisplay from "@/components/LoaderDisplay";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
@@ -22,7 +22,6 @@ export default function LivestockProfileFormPage() {
     const toEditProfileId = Number(selectedProfileId) ?? undefined;
     const [toEditProfile, setToEditProfile] = useState<LivestockProfileData>();
     const [loading, setLoading] = useState(!!toEditProfileId);
-    const [error, setError] = useState<string | null>(null);
     const [livestockType, setLivestockType] =  useState<"plant" | "fish">();
     const [speciesName, setSpeciesName] = useState<string | undefined>('');
     const [isInvalidSpeciesName, setIsInvalidSpeciesName] = useState(false);
@@ -53,17 +52,171 @@ export default function LivestockProfileFormPage() {
     const { showToast } = useAppToast();
     const isEditMode = !!toEditProfileId;
     const [fieldMode, setFieldMode] = useState<"manual" | "auto">("manual");
+    
+    const handleFetchLivestockProfile = useCallback(async () => {
+        if (!selectedOrganizationId || !toEditProfileId) {
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            await fetchIndividualLivestockProfile(
+                setToEditProfile,
+                toEditProfileId,
+                selectedOrganizationId
+            );
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Fetch Livestock Profile",
+                description: "Failed to fetch the profile, please try again later.",
+            });
+        } finally {
+            // setLoading(false);
+        }
+    }, [selectedOrganizationId, toEditProfileId, showToast]);
+
+    const handleUpdateLivestockProfile = async () => {
+        if (!selectedOrganizationId || !toEditProfileId || !toEditProfile) {
+            return;
+        }
+
+        try {
+            if (toEditProfile.type === "plant") {
+                await updateLivestockProfile({
+                    selectedOrganizationId,
+                    profileId: toEditProfileId,
+                    livestockType: "plant",
+                    description,
+                    speciesName,
+                    minTemp,
+                    maxTemp,
+                    tempUnit,
+                    minPh,
+                    maxPh,
+                    harvestDays,
+                    nurseryDays,
+                });
+            } else {
+                await updateLivestockProfile({
+                    selectedOrganizationId,
+                    profileId: toEditProfileId,
+                    livestockType: "fish",
+                    description,
+                    speciesName,
+                    minTemp,
+                    maxTemp,
+                    tempUnit,
+                    minPh,
+                    maxPh,
+                    growthDays,
+                    age,
+                });
+            }
+
+            setIsProfileAction(false);
+
+            router.back();
+
+            showToast({
+                action: "success",
+                title: "Livestock Profile Updated",
+                description: `${speciesName} updated successfully`,
+            });
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "Failed to update livestock profile";
+
+            setIsProfileAction(false);
+
+            showToast({
+                action: "error",
+                title: "Livestock Profile Update Failed",
+                description: "Failed to update livestock profile, please try again later.",
+            });
+        }
+    };
+
+    const handleCreateLivestockProfile = async () => {
+        if (!selectedOrganizationId || !livestockType) {
+            return;
+        }
+
+        try {
+            if (livestockType === "plant") {
+                await createLivestockProfile({
+                    selectedOrganizationId,
+                    livestockType: "plant",
+                    description,
+                    speciesName,
+                    minTemp,
+                    maxTemp,
+                    tempUnit,
+                    minPh,
+                    maxPh,
+                    harvestDays,
+                    nurseryDays,
+                });
+            } else {
+                await createLivestockProfile({
+                    selectedOrganizationId,
+                    livestockType: "fish",
+                    description,
+                    speciesName,
+                    minTemp,
+                    maxTemp,
+                    tempUnit,
+                    minPh,
+                    maxPh,
+                    growthDays,
+                    age,
+                });
+            }
+
+            setIsProfileAction(false);
+
+            router.back();
+
+            showToast({
+                action: "success",
+                title: "Livestock Profile Created",
+                description: `${speciesName} created successfully`,
+            });
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "Failed to create livestock profile";
+
+            setIsProfileAction(false)
+
+            showToast({
+                action: "error",
+                title: "Livestock Profile Creation Failed",
+                description: "Failed to created livestock profile, please try again later",
+            });
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
+            const fetchData = async () => {
+                try {
+                    await handleFetchLivestockProfile();
+                } finally {
+                    setLoading(false);
+                }
+            }
             if (selectedOrganizationId && toEditProfileId) {
-                fetchIndividualLivestockProfile(
-                    setLoading,
-                    setError,
-                    setToEditProfile,
-                    toEditProfileId,
-                    selectedOrganizationId
-                )
+                fetchData();
             }
         }, [selectedOrganizationId, toEditProfileId])
     )
@@ -315,16 +468,10 @@ export default function LivestockProfileFormPage() {
         <>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
                 {isEditMode && loading ? (
-                    <LoaderDisplay
-                        type="loading"
-                        message="Loading Livestock Profile Data..."
-                    />
-                ) : error ? (
-                    <LoaderDisplay
-                        type="error"
-                        message={error}
-                    />
-                ): (
+                    <SkeletonLoading skeletonVariant="store"/>
+                ) : isEditMode && !toEditProfile ? (
+                    null
+                ) : (
                     <ScrollView className="mb-12">
                         <VStack className="flex-1 p-5"
                             space="md"
@@ -499,158 +646,9 @@ export default function LivestockProfileFormPage() {
                         
                         <Button onPress={() => {
                             if (isEditMode) {
-                                if(livestockType === "plant") {
-                                    updateLivestockProfile({
-                                        closerCallBack: () => {
-                                            setIsProfileAction(false);
-                                        },
-
-                                        onLivestockProfileEditted: async () => {
-                                            try {
-                                                showToast({
-                                                    action: "success",
-                                                    title: "Livestock Profile Updated",
-                                                    description: `${speciesName} profile, updated successfully`,
-                                                });
-                                            } catch (error) {
-                                                showToast({
-                                                    action: "error",
-                                                    title: "Livestock Profile Update Failed",
-                                                    description: `Failed to update ${speciesName} profile, please try again`,
-                                                });
-                                            }
-
-                                            router.back();
-                                        },
-                                        selectedOrganizationId,
-                                        profileId: toEditProfileId,
-                                        livestockType: "plant",
-                                        description,
-                                        speciesName,
-                                        minTemp,
-                                        maxTemp,
-                                        tempUnit,
-                                        minPh,
-                                        maxPh,
-                                        // Plant-specific properties
-                                        harvestDays,
-                                        nurseryDays,
-                                    });
-                                } else {
-                                    updateLivestockProfile({
-                                        closerCallBack: () => {
-                                            setIsProfileAction(false);
-                                        },
-                                        onLivestockProfileEditted: async () => {
-                                            try {
-                                                showToast({
-                                                    action: "success",
-                                                    title: "Livestock Profile Updated",
-                                                    description: `${speciesName} profile, updated successfully`,
-                                                });
-                                            } catch (error) {
-                                                showToast({
-                                                    action: "error",
-                                                    title: "Livestock Profile Update Failed",
-                                                    description: `Failed to update ${speciesName} profile, please try again`,
-                                                });
-                                            }
-
-                                            router.back();
-                                        },
-                                        selectedOrganizationId,
-                                        profileId: toEditProfileId,
-                                        livestockType: "fish",
-                                        description,
-                                        speciesName,
-                                        minTemp,
-                                        maxTemp,
-                                        tempUnit,
-                                        minPh,
-                                        maxPh,
-                                        // Fish-specific properties
-                                        growthDays,
-                                        age,
-                                    });
-                                }
+                                handleUpdateLivestockProfile();
                             } else {
-                                if(livestockType === "plant") {
-                                    createLivestockProfile({
-                                        closerCallBack: () => {
-                                            setIsProfileAction(false);
-                                        },
-
-                                        onLivestockCreated: async () => {
-                                            try {
-                                                showToast({
-                                                    action: "success",
-                                                    title: "Livestock Profile Created",
-                                                    description: `${speciesName} profile, created successfully`,
-                                                });
-                                            } catch (error) {
-                                                showToast({
-                                                    action: "error",
-                                                    title: "Livestock Profile Creation Failed",
-                                                    description: `Failed to create ${speciesName} profile, please try again`,
-                                                });
-                                            }
-
-                                            router.back();
-                                        },
-
-                                        selectedOrganizationId,
-                                        livestockType: "plant",
-                                        description,
-                                        speciesName,
-                                        minTemp,
-                                        maxTemp,
-                                        tempUnit,
-                                        minPh,
-                                        maxPh,
-
-                                        // Plant-specific properties
-                                        harvestDays,
-                                        nurseryDays,
-                                    });
-                                } else {
-                                    createLivestockProfile({
-                                        closerCallBack: () => {
-                                            setIsProfileAction(false);
-                                        },
-
-                                        onLivestockCreated: async () => {
-                                            try {
-                                                showToast({
-                                                    action: "success",
-                                                    title: "Livestock Profile Created",
-                                                    description: `${speciesName} profile, created successfully`,
-                                                });
-                                            } catch (error) {
-                                                showToast({
-                                                    action: "error",
-                                                    title: "Livestock Profile Creation Failed",
-                                                    description: `Failed to create ${speciesName} profile, please try again`,
-                                                });
-                                            }
-
-                                            router.back();
-                                        },
-
-                                        selectedOrganizationId,
-                                        livestockType: "fish",
-                                        description,
-                                        speciesName,
-                                        minTemp,
-                                        maxTemp,
-                                        tempUnit,
-                                        minPh,
-                                        maxPh,
-
-                                        // Fish-specific properties
-                                        growthDays,
-                                        age,
-                                    });
-                                }
+                                handleCreateLivestockProfile();
                             }
                             
                         }}>

@@ -1,5 +1,5 @@
 import useAppToast from "@/components/AppToast";
-import LoaderDisplay from "@/components/LoaderDisplay";
+import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
@@ -27,8 +27,7 @@ import { Pressable, RefreshControl, SectionList, StyleSheet } from "react-native
 export default function LivestockProfilesScreen() {
     const { selectedOrganizationId } = useOrganization();
     const [query, setQuery] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [livestockProfileData, setLivestockProfileData] = useState<LivestockProfileData[]>([]);
     const [selectedType, setSelectedType] = useState<"all" | "plant" | "fish">("all");
@@ -38,27 +37,91 @@ export default function LivestockProfilesScreen() {
     const { famOpacity, setFamOpacity } = useFam();
     const { showToast } = useAppToast();
 
+    const handleFetchLivestockProfiles = async () => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        // setLoading(true);
+
+        try {
+            await fetchLivestockProfileData(
+                setLivestockProfileData,
+                selectedOrganizationId
+            );
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "An unexpected error occurred";
+
+            showToast({
+                action: "error",
+                title: "Failed to Fetch Livestock Profiles",
+                description: "Failed to fetch available livestock profiles, please try again later",
+            });
+        } finally {
+            // setLoading(false);
+        }
+    };
+
+    const handleDeleteLivestockProfile = async () => {
+        if (!toDeleteLivestockProfile || !selectedOrganizationId) {
+            return;
+        }
+
+        const profileId = toDeleteLivestockProfile.id;
+        const profileName = toDeleteLivestockProfile.species_name;
+
+        try {
+            await deleteLivestockProfile(
+                profileId,
+                selectedOrganizationId
+            );
+
+            setIsDeletingLivestockProfile(false);
+            setToDeleteLivestockProfile(undefined);
+
+            await handleFetchLivestockProfiles();
+
+            showToast({
+                action: "success",
+                title: "Livestock Profile Deleted",
+                description: `${profileName} deleted successfully`,
+            });
+        } catch (error) {
+            // const message =
+            //     error instanceof Error
+            //         ? error.message
+            //         : "Failed to delete livestock profile";
+
+            setIsDeletingLivestockProfile(false);
+            setToDeleteLivestockProfile(undefined);
+
+            showToast({
+                action: "error",
+                title: "Livestock Profile Deletion Failed",
+                description: "Failed to delete livestock profile, please try again later",
+            });
+        }
+    };
+
     useFocusEffect(
         useCallback(() => {
-            if (selectedOrganizationId) {
-                fetchLivestockProfileData(
-                    setLoading,
-                    setError,
-                    setLivestockProfileData,
-                    selectedOrganizationId
-                );
+            const fetchData = async () => {
+                try {
+                    await handleFetchLivestockProfiles();
+                } finally {
+                    setLoading(false);
+                }
             }
+            fetchData();
         }, [selectedOrganizationId])
     )
 
     const handleRefresh = () => {
         setRefreshing(true);
-        selectedOrganizationId && fetchLivestockProfileData(
-            setLoading,
-            setError,
-            setLivestockProfileData,
-            selectedOrganizationId
-        );
+        handleFetchLivestockProfiles();
         setRefreshing(false);
     }
 
@@ -160,16 +223,8 @@ export default function LivestockProfilesScreen() {
                     </Picker>
                 </Box>
                 {loading ? (
-                    <LoaderDisplay
-                        type="loading"
-                        message="Loading Livestock Profiles..."
-                    />
-                ) : error ? (
-                    <LoaderDisplay
-                        type="error"
-                        message={error}
-                    />
-                ) : isProfileEmpty ? (
+                    <SkeletonLoading />
+                ) : isProfileEmpty && !loading ? (
                     <Center className="flex-1">
                         <Text>There are no profiles available</Text>
                     </Center>
@@ -304,28 +359,7 @@ export default function LivestockProfilesScreen() {
                             <ButtonText>Cancel</ButtonText>
                         </Button>
                         <Button onPress={() => {
-                            setIsDeletingLivestockProfile(false)
-                            deleteLivestockProfile(
-                                toDeleteLivestockProfile?.id,
-                                selectedOrganizationId,
-                                async () => {
-                                    showToast({
-                                        action: "success",
-                                        title: "Livestock Profile Deleted",
-                                        description: `${toDeleteLivestockProfile?.species_name} deleted successfully`,
-                                    });
-
-                                    if (toDeleteLivestockProfile) {
-                                        fetchLivestockProfileData(
-                                            setLoading,
-                                            setError,
-                                            setLivestockProfileData,
-                                            selectedOrganizationId
-                                        );
-                                        setToDeleteLivestockProfile(undefined);
-                                    }
-                                }
-                            )
+                            handleDeleteLivestockProfile()
                         }}>
                             <ButtonText>Confirm</ButtonText>
                         </Button>

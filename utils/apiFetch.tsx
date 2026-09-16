@@ -1,4 +1,4 @@
-import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationData, OrganizationMember, Role, SensorData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
+import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SensorData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
@@ -6,7 +6,10 @@ import { Dispatch, SetStateAction } from "react";
 import { TempUnit } from "./stringUtils";
 const URANUS_URL = "https://uranus.luscsusjr.dpdns.org";
 
-export async function verifyMe() {
+export async function verifyMe(
+    userDataSetter: Dispatch<SetStateAction<UserData | null>>,
+    userSettingsDataSetter: Dispatch<SetStateAction<UserSettings | null>>
+) {
     try {
         const token = await SecureStore.getItemAsync('userToken');
 
@@ -30,7 +33,47 @@ export async function verifyMe() {
         if (!response.ok) {
             throw new Error('Failed to load secure data.');
         }
+
+        const json = await response.json();
+
+        userDataSetter(json);
+        userSettingsDataSetter(json.settings);
     } catch (error: any) {
+        console.error("updateUserSettings error:", error);
+        throw error;
+    }
+}
+
+export async function fetchOrgDashboard(
+    orgDashboardDataSetter: Dispatch<SetStateAction<OrganizationDashboardData[] | undefined>>
+) {
+    try {
+        const token = await SecureStore.getItemAsync('userToken');
+
+        if(!token) {
+            throw new Error('No authorization token found. Please log in.');
+        }
+
+        const response = await fetch(URANUS_URL + `/api/organizations/dashboard`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (response.status === 401) {
+            throw new Error('Session expired. Please log in again.');
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to load secure data.');
+        }
+
+        const json = await response.json();
+        orgDashboardDataSetter(json.data);
+    } catch (error) {
         console.error("updateUserSettings error:", error);
         throw error;
     }
@@ -121,524 +164,499 @@ export async function updateUserSettings(
 }
 
 export async function fetchOrganizations(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
     organizationSetter: Dispatch<SetStateAction<OrganizationData[]>>
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync('userToken');
 
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const response = await fetch(URANUS_URL + '/api/organizations', {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-
-        });
-
-        if (response.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        if (!response.ok) {
-            throw new Error('Failed to load secure data.');
-        }
-
-        const json = await response.json();
-        organizationSetter(json.data);
-    } catch (error: any) {
-        if (errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if (loadingSetter) loadingSetter(false);
+    if(!token) {
+        throw new Error('No authorization token found. Please log in.');
     }
+
+    const response = await fetch(URANUS_URL + '/api/organizations', {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+
+    });
+
+    if(response.status === 500) {
+        console.log("Reached");
+        throw new Error('This is a test error');
+    }
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error('Failed to load secure data.');
+    }
+
+    const json = await response.json();
+
+    organizationSetter(json.data);
 }
 
 export async function fetchMemberData(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
     memberSetter: Dispatch<SetStateAction<OrganizationMember[]>>,
     roleSetter: Dispatch<SetStateAction<Role[]>>,
     selectedOrganizationId: number
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync('userToken');
 
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const membersResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/users`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`, // Perfect security integration
-            },
-        });
-
-        const rolesResponse = await fetch(URANUS_URL + '/api/roles', {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`, // Perfect security integration
-            },
-        });
-
-        if (membersResponse.status === 401 || rolesResponse.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        if (!membersResponse.ok || !rolesResponse.ok) {
-            throw new Error('Failed to load secure data.');
-        }
-
-        const membersJson = await membersResponse.json();
-        memberSetter(membersJson.data);
-        const rolesJson = await rolesResponse.json();
-        roleSetter(rolesJson);
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false);
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
     }
+
+    const [membersResponse, rolesResponse] = await Promise.all([
+        fetch(
+            URANUS_URL + `/api/organizations/${selectedOrganizationId}/users`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        ),
+
+        fetch(
+            URANUS_URL + '/api/roles',
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        ),
+    ]);
+
+    if (
+        membersResponse.status === 401 ||
+        rolesResponse.status === 401
+    ) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!membersResponse.ok || !rolesResponse.ok) {
+        throw new Error('Failed to load secure data.');
+    }
+
+    const membersJson = await membersResponse.json();
+    const rolesJson = await rolesResponse.json();
+
+    memberSetter(membersJson.data);
+    roleSetter(rolesJson);
+
+    return {
+        members: membersJson.data,
+        roles: rolesJson,
+    };
 }
 
 export async function updateMemberRole(
-    selectedRoleId: number | undefined,
-    roleList: Role[],
-    selectedMember: OrganizationMember | undefined,
-    selectedOrganizationId: number | null,
-    closerCallback: () => void,
-    onRoleUpdated: () => void | Promise<void>
+    role: string,
+    memberId: number,
+    organizationId: number
 ) {
-    try {
-        closerCallback();
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        const updateMemberRoleResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/users/${selectedMember?.id}/role`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${organizationId}/users/${memberId}/role`,
+        {
             method: 'PUT',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-                role: roleList.find(role => role.id === selectedRoleId)?.name
+                role,
             }),
-        });
-
-        const data = await updateMemberRoleResponse.json();
-
-        if (!updateMemberRoleResponse.ok) {
-            throw new Error(data.message ?? 'Failed to update role');
         }
+    );
 
-        await onRoleUpdated();
-    } catch (error) {
-        throw new Error(error as any);
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to update member role.'
+        );
+    }
+
+    return data;
 }
 
 export async function updateMemberStatus(
-    selectedMember: OrganizationMember | undefined,
-    selectedOrganizationId: number | null,
-    onStatusChanged: () => void | Promise<void>
+    active: boolean,
+    memberId: number,
+    organizationId: number
 ) {
-    try{
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        const updateStatusResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/users/${selectedMember?.id}/status`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${organizationId}/users/${memberId}/status`,
+        {
             method: 'PUT',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-                active: !selectedMember?.active
+                active,
             }),
-        });
-
-        const data = await updateStatusResponse.json();
-
-        if (!updateStatusResponse.ok) {
-            throw new Error(data.message ?? 'Failed to update role');
         }
+    );
 
-        await onStatusChanged();
-    } catch (error) {
-        throw new Error(error as any);
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to update member status.'
+        );
+    }
+
+    return data;
 }
 
 export async function addMember(
     email: string,
-    selectedRole: number | undefined,
-    roleList: Role[],
-    selectedOrganizationId: number | null,
-    closerCallback: () => void,
-    onMemberAdd: () => void | Promise<void>
+    role: string,
+    organizationId: number
 ) {
-    try {
-        closerCallback();
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const addMemberResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/users`, {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    email: email,
-                    role: roleList.find(role => role.id === selectedRole)?.name
-                }),
-            });
-
-            const data = await addMemberResponse.json();
-
-            if (!addMemberResponse.ok) {
-                throw new Error(data.message ?? 'Failed to add member');
-            }
-
-            await onMemberAdd();
-    } catch (error) {
-        throw new Error(error as any);
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
     }
+
+    const response = await fetch(
+        URANUS_URL + `/api/organizations/${organizationId}/users`,
+        {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                email,
+                role,
+            }),
+        }
+    );
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to add member.'
+        );
+    }
+
+    return data;
 }
 
 export async function deleteOrganization(
-    toDeleteOrganizationId: number | undefined,
-    onOrgDelete: () => void | Promise<void>
+    organizationId: number
 ) {
-    try {
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        const deleteStatusResponse = await fetch(URANUS_URL + `/api/organizations/${toDeleteOrganizationId}`, {
+    const response = await fetch(
+        URANUS_URL + `/api/organizations/${organizationId}`,
+        {
             method: 'DELETE',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
-        })
-
-        const data = await deleteStatusResponse.json();
-
-        if (!deleteStatusResponse.ok) {
-            throw new Error(data.message ?? 'Failed to delete organization');
         }
+    );
 
-        await onOrgDelete();
-    } catch (error) {
-        throw new Error(error as any);
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to delete organization.'
+        );
+    }
+
+    return data;
 }
 
 export async function updateOrganization(
     orgName: string,
     orgDesc: string,
-    toEditOrgId: number | undefined,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
-    closerCallback: () => void,
-    onOrgEditted: () => void | Promise<void>
+    toEditOrgId: number
 ) {
-    try {
-        closerCallback();
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        const updateOrganizationResponse = await fetch(URANUS_URL + `/api/organizations/${toEditOrgId}`, {
+    const response = await fetch(
+        URANUS_URL + `/api/organizations/${toEditOrgId}`,
+        {
             method: 'PATCH',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
                 name: orgName,
-                description: orgDesc
+                description: orgDesc,
             }),
-        })
-
-        const data = await updateOrganizationResponse.json();
-
-        if (!updateOrganizationResponse.ok) {
-            throw new Error(data.message ?? 'Failed to create organization');
         }
+    );
 
-        await onOrgEditted();
-    } catch (error) {
-        if (error instanceof Error) {
-            errorSetter(error.message);
-            throw error;
-        }
+    const data = await response.json();
 
-        errorSetter(String(error));
-        throw new Error(String(error));
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to update organization.'
+        );
+    }
+
+    return data;
 }
 
 export async function createOrganization(
     orgName: string,
-    orgDesc: string,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
-    closerCallback: () => void,
-    onOrgCreated: () => void | Promise<void>
+    orgDesc: string
 ) {
-    try {
-        closerCallback();
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        const createOrganizationResponse = await fetch(URANUS_URL + '/api/organizations', {
+    const response = await fetch(
+        URANUS_URL + '/api/organizations',
+        {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
                 name: orgName,
-                description: orgDesc
+                description: orgDesc,
             }),
-        });
-
-        const data = await createOrganizationResponse.json();
-
-        if (!createOrganizationResponse.ok) {
-            throw new Error(data.message ?? 'Failed to create organization');
         }
+    );
 
-        await onOrgCreated();
-    } catch (error) {
-        if (error instanceof Error) {
-            errorSetter(error.message);
-            throw error;
-        }
+    const data = await response.json();
 
-        errorSetter(String(error));
-        throw new Error(String(error));
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to create organization.'
+        );
+    }
+
+    return data;
 }
 
 export async function fetchLivestockData(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
-    livestockSetter: Dispatch<SetStateAction<LivestockData[]>>,
-    selectedOrganizationId: number
+    selectedOrganizationId: number,
+    livestockSetter: Dispatch<SetStateAction<LivestockData[]>>
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync('userToken');
 
-        const token = await SecureStore.getItemAsync('userToken');
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const livestockResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestocks`,
+        {
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
             },
-        });
-
-
-        if (livestockResponse.status === 401) {
-            throw new Error('Session expired. Please log in again.');
         }
+    );
 
-        if (!livestockResponse.ok) {
-            throw new Error('Failed to load secure data.');
-        }
-
-        const livestockJson = await livestockResponse.json();
-        livestockSetter(livestockJson.data);
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false);
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error('Failed to load secure data.');
+    }
+
+    const json = await response.json();
+
+    livestockSetter(json.data);
 }
 
 // api/organizations/{organization}/livestocks/{livestock}
 
 export async function fetchIndividualLivestock(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
     livestockSetter: Dispatch<SetStateAction<LivestockData | undefined>>,
     livestockId: number,
-    selectedOrganizationId: number | null
+    selectedOrganizationId: number
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync("userToken");
 
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        })
-
-        if (response.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        if (!response.ok) {
-            throw new Error('Failed to load secure data.');
-        }
-
-        const json = await response.json();
-        livestockSetter(json.data);
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false);
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
     }
+
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}`,
+        {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error("Failed to load secure data.");
+    }
+
+    const data = await response.json();
+
+    livestockSetter(data.data);
 }
 
 export async function fetchLivestockProfileData(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
     livestockProfileSetter: Dispatch<SetStateAction<LivestockProfileData[]>>,
-    selectedOrganizationId: number | null
+    selectedOrganizationId: number
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync('userToken');
 
-        const token = await SecureStore.getItemAsync('userToken');
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
 
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const livestockProfileResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestock-profiles`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestock-profiles`,
+        {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
+                Authorization: `Bearer ${token}`,
             },
-        });
-
-        if (livestockProfileResponse.status === 401) {
-            throw new Error('Session expired. Please log in again.');
         }
+    );
 
-        if (!livestockProfileResponse.ok) {
-            throw new Error('Failed to load secure data.');
-        }
-
-        const livestockProfileJson = await livestockProfileResponse.json();
-        livestockProfileSetter(livestockProfileJson.data);
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false);
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
     }
+
+    if (!response.ok) {
+        throw new Error('Failed to load secure data.');
+    }
+
+    const data = await response.json();
+
+    livestockProfileSetter(data.data);
 }
 
 export async function fetchIndividualLivestockProfile(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
-    profileSetter: Dispatch<SetStateAction<LivestockProfileData| undefined>>,
+    profileSetter: Dispatch<SetStateAction<LivestockProfileData | undefined>>,
     profileId: number,
     selectedOrganizationId: number
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync("userToken");
 
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestock-profiles/${profileId}/`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        })
-
-        if (response.status === 401) {
-            console.log("Failed 1");
-            throw new Error('Session expired. Please log in again.');
-            
-        }
-
-        if (!response.ok) {
-            console.log("Failed 2");
-            throw new Error('Failed to load secure data.');
-        }
-
-        
-        const json = await response.json();
-        profileSetter(json.data);
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false); 
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
     }
+
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestock-profiles/${profileId}`,
+        {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error("Failed to load secure data.");
+    }
+
+    const data = await response.json();
+
+    profileSetter(data.data);
 }
 
 type BaseLivestockParams = {
-    closerCallBack: () => void;
-    onLivestockCreated: () => void | Promise<void>;
-    selectedOrganizationId: number | null;
+    selectedOrganizationId: number;
     image: ImagePicker.ImagePickerAsset | null;
     liveStockName: string;
     description: string;
@@ -668,10 +686,8 @@ type CreateLivestockParams =
 
 export async function createLivestock(
     params: CreateLivestockParams
-): Promise<void> {
+) {
     const {
-        closerCallBack,
-        onLivestockCreated,
         livestockType,
         selectedOrganizationId,
         image,
@@ -685,98 +701,95 @@ export async function createLivestock(
         maxPh,
     } = params;
 
-    try {
-        closerCallBack();
+    const token = await SecureStore.getItemAsync("userToken");
 
-        const token = await SecureStore.getItemAsync("userToken");
-
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
-
-        const formData = new FormData();
-
-        formData.append("livestock_name", liveStockName);
-        formData.append("type", livestockType);
-        formData.append("species_name", speciesName ?? "");
-        formData.append("description", description);
-
-        if (image?.uri) {
-            const file = new File(image.uri);
-
-            formData.append("image", file);
-        }
-
-        if (livestockType === "plant") {
-            const { harvestDays, nurseryDays } = params;
-
-            const data = {
-                harvest_days: harvestDays,
-                phase: "nursery",
-                phase_changed_on: null,
-                ideal_temp: {
-                    tempUnit,
-                    min: minTemp,
-                    max: maxTemp,
-                },
-                ph_range: {
-                    min: minPh,
-                    max: maxPh,
-                },
-                nursery_days: nurseryDays,
-            };
-
-            formData.append("data", JSON.stringify(data));
-        } else {
-            const { growthDays, age } = params;
-            const data = {
-                growth_days: growthDays,
-                age: age,
-                ideal_temp: {
-                    tempUnit,
-                    min: minTemp,
-                    max: maxTemp,
-                },
-                ph_range: {
-                    min: minPh,
-                    max: maxPh,
-                }
-            }
-            formData.append("data", JSON.stringify(data));
-        }
-
-        const response = await fetch(
-            `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestocks`,
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                    // DO NOT set Content-Type here
-                },
-                body: formData,
-            }
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
         );
-
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                responseData.message ?? "Failed to create livestock"
-            );
-        }
-
-        await onLivestockCreated();
-    } catch (error) {
-        console.log("CREATE LIVESTOCK ERROR:", error);
-        throw error;
     }
+
+    const formData = new FormData();
+
+    formData.append("livestock_name", liveStockName);
+    formData.append("type", livestockType);
+    formData.append("species_name", speciesName ?? "");
+    formData.append("description", description);
+
+    if (image?.uri) {
+        const file = new File(image.uri);
+        formData.append("image", file);
+    }
+
+    if (livestockType === "plant") {
+        const { harvestDays, nurseryDays } = params;
+
+        const data = {
+            harvest_days: harvestDays,
+            phase: "nursery",
+            phase_changed_on: null,
+            ideal_temp: {
+                tempUnit,
+                min: minTemp,
+                max: maxTemp,
+            },
+            ph_range: {
+                min: minPh,
+                max: maxPh,
+            },
+            nursery_days: nurseryDays,
+        };
+
+        formData.append("data", JSON.stringify(data));
+    } else {
+        const { growthDays, age } = params;
+
+        const data = {
+            growth_days: growthDays,
+            age,
+            ideal_temp: {
+                tempUnit,
+                min: minTemp,
+                max: maxTemp,
+            },
+            ph_range: {
+                min: minPh,
+                max: maxPh,
+            },
+        };
+
+        formData.append("data", JSON.stringify(data));
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestocks`,
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        }
+    );
+
+    const responseData = await response.json();
+
+    if (response.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            responseData.message ?? "Failed to create livestock"
+        );
+    }
+
+    return responseData;
 }
 
 type BaseLivestockProfileParams = {
-    closerCallBack: () => void;
-    onLivestockCreated: () => void | Promise<void>;
-    selectedOrganizationId: number | null;
+    selectedOrganizationId: number;
     description: string;
     speciesName: string | undefined;
     minTemp: number | undefined;
@@ -804,10 +817,8 @@ type LivestockProfileParams =
 
 export async function createLivestockProfile(
     params: LivestockProfileParams
-): Promise<void> {
+) {
     const {
-        closerCallBack,
-        onLivestockCreated,
         livestockType,
         selectedOrganizationId,
         description,
@@ -819,118 +830,126 @@ export async function createLivestockProfile(
         maxPh,
     } = params;
 
-    try {
-        closerCallBack();
+    const token = await SecureStore.getItemAsync("userToken");
 
-        const token = await SecureStore.getItemAsync("userToken");
-
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
-
-        const formData = new FormData();
-        formData.append("type", livestockType);
-        formData.append("species_name", speciesName ?? "");
-        formData.append("description", description);
-
-        if (livestockType === "plant") {
-            const { harvestDays, nurseryDays } = params;
-
-            const data = {
-                harvest_days: harvestDays,
-                phase: "nursery",
-                phase_changed_on: null,
-                ideal_temp: {
-                    tempUnit,
-                    min: minTemp,
-                    max: maxTemp,
-                },
-                ph_range: {
-                    min: minPh,
-                    max: maxPh,
-                },
-                nursery_days: nurseryDays,
-            };
-
-            formData.append("data", JSON.stringify(data));
-        } else {
-            const { growthDays, age } = params;
-            const data = {
-                growth_days: growthDays,
-                age: age,
-                ideal_temp: {
-                    tempUnit,
-                    min: minTemp,
-                    max: maxTemp,
-                },
-                ph_range: {
-                    min: minPh,
-                    max: maxPh,
-                }
-            }
-            formData.append("data", JSON.stringify(data));
-        }
-
-        const response = await fetch(
-            `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestock-profiles`,
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                    // DO NOT set Content-Type here
-                },
-                body: formData,
-            }
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
         );
-
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                responseData.message ?? "Failed to create livestock profile"
-            );
-        }
-
-        await onLivestockCreated();
-    } catch (error) {
-        console.log("CREATE LIVESTOCK PROFILE ERROR:", error);
-        throw error;
     }
+
+    const formData = new FormData();
+
+    formData.append("type", livestockType);
+    formData.append("species_name", speciesName ?? "");
+    formData.append("description", description);
+
+    if (livestockType === "plant") {
+        const { harvestDays, nurseryDays } = params;
+
+        const data = {
+            harvest_days: harvestDays,
+            phase: "nursery",
+            phase_changed_on: null,
+            ideal_temp: {
+                tempUnit,
+                min: minTemp,
+                max: maxTemp,
+            },
+            ph_range: {
+                min: minPh,
+                max: maxPh,
+            },
+            nursery_days: nurseryDays,
+        };
+
+        formData.append("data", JSON.stringify(data));
+    } else {
+        const { growthDays, age } = params;
+
+        const data = {
+            growth_days: growthDays,
+            age,
+            ideal_temp: {
+                tempUnit,
+                min: minTemp,
+                max: maxTemp,
+            },
+            ph_range: {
+                min: minPh,
+                max: maxPh,
+            },
+        };
+
+        formData.append("data", JSON.stringify(data));
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestock-profiles`,
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        }
+    );
+
+    const responseData = await response.json();
+
+    if (response.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            responseData.message ??
+                "Failed to create livestock profile"
+        );
+    }
+
+    return responseData;
 }
 
 
 export async function deleteLivestockProfile(
-    livestockProfileId: number | undefined,
-    selectedOrganizationId: number | null,
-    onLivestockProfileDelete: () => void | Promise<void>
+    livestockProfileId: number,
+    selectedOrganizationId: number
 ) {
-    try {
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync("userToken");
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const deleteLivestockProfileResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestock-profiles/${livestockProfileId}`, {
-            method: 'DELETE',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            },
-        })
-
-        const data = await deleteLivestockProfileResponse.json();
-
-        if (!deleteLivestockProfileResponse.ok) {
-            throw new Error(data.message ?? 'Failed to delete livestock profile');
-        }
-
-        await onLivestockProfileDelete();
-    } catch (error) {
-        throw new Error(error as any);
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
     }
+
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestock-profiles/${livestockProfileId}`,
+        {
+            method: "DELETE",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (response.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    if (!response.ok) {
+        const data = await response.json();
+
+        throw new Error(
+            data.message ?? "Failed to delete livestock profile"
+        );
+    }
+
+    return true;
 }
 
 export async function fetchSensorChartLink(
@@ -978,10 +997,8 @@ export async function fetchSensorChartLink(
 }
 
 type UpdateLivestockProfileParams = {
-    closerCallBack: () => void;
-    onLivestockProfileEditted: () => void | Promise<void>;
-    selectedOrganizationId: number | null;
-    profileId: number | undefined;
+    selectedOrganizationId: number;
+    profileId: number;
     description: string;
     speciesName: string | undefined;
     minTemp: number | undefined;
@@ -1006,8 +1023,8 @@ export async function updateLivestockProfile(
     params: UpdateLivestockProfileParams
 ) {
     const {
-        closerCallBack,
         selectedOrganizationId,
+        profileId,
         description,
         livestockType,
         minTemp,
@@ -1015,155 +1032,169 @@ export async function updateLivestockProfile(
         tempUnit,
         minPh,
         maxPh,
-        // errorSetter,
-        onLivestockProfileEditted,
-        profileId,
     } = params;
 
-    try {
-        closerCallBack();
+    const token = await SecureStore.getItemAsync("userToken");
 
-        const token = await SecureStore.getItemAsync("userToken");
-
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
-
-        const formData = new FormData();
-
-        formData.append("description", description);
-        
-        if(livestockType === "plant") {
-            const { harvestDays, nurseryDays } = params;
-
-            const data = {
-                harvest_days: harvestDays,
-                phase: "nursery",
-                phase_changed_on: null,
-                ideal_temp: {
-                    tempUnit,
-                    min: minTemp,
-                    max: maxTemp,
-                },
-                ph_range: {
-                    min: minPh,
-                    max: maxPh,
-                },
-                nursery_days: nurseryDays,
-            };
-            formData.append("data", JSON.stringify(data));
-        } else {
-            const { growthDays, age } = params;
-            const data = {
-                growth_days: growthDays,
-                age: age,
-                ideal_temp: {
-                    tempUnit,
-                    min: minTemp,
-                    max: maxTemp,
-                },
-                ph_range: {
-                    min: minPh,
-                    max: maxPh,
-                }
-            }
-            formData.append("data", JSON.stringify(data));
-        }
-
-        formData.append("_method", "PATCH");
-
-        const response = await fetch(
-            `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestock-profiles/${profileId}`,
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: formData,
-            }
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
         );
-
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                responseData.message ?? "Failed to update livestock profile"
-            );
-        }
-
-        await onLivestockProfileEditted();
-    }  catch (error) {
-        console.log("UPDATE LIVESTOCK PROFILE ERROR:", error);
-        throw error;
     }
 
+    const formData = new FormData();
+
+    formData.append("description", description);
+
+    if (livestockType === "plant") {
+        const { harvestDays, nurseryDays } = params;
+
+        const data = {
+            harvest_days: harvestDays,
+            phase: "nursery",
+            phase_changed_on: null,
+            ideal_temp: {
+                tempUnit,
+                min: minTemp,
+                max: maxTemp,
+            },
+            ph_range: {
+                min: minPh,
+                max: maxPh,
+            },
+            nursery_days: nurseryDays,
+        };
+
+        formData.append("data", JSON.stringify(data));
+    } else {
+        const { growthDays, age } = params;
+
+        const data = {
+            growth_days: growthDays,
+            age,
+            ideal_temp: {
+                tempUnit,
+                min: minTemp,
+                max: maxTemp,
+            },
+            ph_range: {
+                min: minPh,
+                max: maxPh,
+            },
+        };
+
+        formData.append("data", JSON.stringify(data));
+    }
+
+    formData.append("_method", "PATCH");
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestock-profiles/${profileId}`,
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        }
+    );
+
+    const responseData = await response.json();
+
+    if (response.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            responseData.message ?? "Failed to update livestock profile"
+        );
+    }
+
+    return responseData;
 }
 
 export async function proceedToNextPhase(
-    livestockId: number | undefined,
-    selectedOrganizationId: number | null,
-    onPhaseChanged: () => void | Promise<void>
+    livestockId: number,
+    selectedOrganizationId: number
 ) {
-    try {
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error(
+            'No authorization token found. Please log in.'
+        );
+    }
 
-        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}/change-phase`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}/change-phase`,
+        {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message ?? 'Failed to proceed to next phase');
         }
+    );
 
-        await onPhaseChanged();
-    } catch (error) {
-        console.error('Error proceeding to next phase:', error);
-        throw error;
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error(
+            'Session expired. Please log in again.'
+        );
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to proceed to next phase'
+        );
+    }
+
+    return data;
 }
 
 export async function harvestLivestock(
-    livestockId: number | undefined,
-    selectedOrganizationId: number | null,
-    onHarvested: () => void | Promise<void>
+    livestockId: number,
+    selectedOrganizationId: number
 ) {
-    try {
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync('userToken');
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error(
+            'No authorization token found. Please log in.'
+        );
+    }
 
-        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}/toggle-harvest`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}/toggle-harvest`,
+        {
             method: 'PATCH',
             headers: {
                 Accept: 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message ?? 'Failed to harvest livestock');
         }
+    );
 
-        await onHarvested();
-    } catch (error) {
-        console.error('Error harvesting livestock:', error);
-        throw error;
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error(
+            'Session expired. Please log in again.'
+        );
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? 'Failed to harvest livestock'
+        );
+    }
+
+    return data;
 }
 
 export async function fetchSensorData(
@@ -1210,293 +1241,303 @@ export async function fetchSensorData(
 }
 
 export async function fetchLivestockLogData(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
     livestockId: number,
     livestockLogsSetter: Dispatch<SetStateAction<LivestockLogData[]>>
 ) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
+    const token = await SecureStore.getItemAsync("userToken");
 
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        const livestockLogsResponse = await fetch(URANUS_URL + `/api/livestocks/${livestockId}/logs`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (livestockLogsResponse.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        if (!livestockLogsResponse.ok) {
-            console.log("Reached Here")
-            console.log(await livestockLogsResponse.json())
-            throw new Error('Failed to load secure data.');
-        }
-
-        const livestockLogsJson = await livestockLogsResponse.json();
-        livestockLogsSetter(livestockLogsJson.data)
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false);
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
     }
+
+    const response = await fetch(
+        URANUS_URL + `/api/livestocks/${livestockId}/logs`,
+        {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error("Failed to load secure data.");
+    }
+
+    const data = await response.json();
+
+    livestockLogsSetter(data.data);
 }
 
 export async function resolveConcernLog(
     livestockId: number,
-    logId: number | undefined,
-    actiontaken: string | undefined,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
-    onResolution: () => void | Promise<void>
+    logId: number,
+    actionTaken: string
 ) {
-    try {
-        const token = await SecureStore.getItemAsync('userToken');
+    const token = await SecureStore.getItemAsync("userToken");
 
-        if (!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
+    }
 
-        const response = await fetch(URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`, {
-            method: 'PATCH',
+    const response = await fetch(
+        URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`,
+        {
+            method: "PATCH",
             headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
+                Accept: "application/json",
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
                 data: {
-                    action_taken: actiontaken
-                }
-            })
-        });
-
-        const data = await response.json();
-        console.log(data);
-
-        if (!response.ok) {
-            throw new Error(data.message ?? 'Failed to resolve concern');
+                    action_taken: actionTaken,
+                },
+            }),
         }
+    );
 
-        await onResolution();
-    } catch (error) {
-        const message = error instanceof Error
-            ? error.message
-            : "Failed to resolve concern, please try again later."
-        errorSetter(message);
-        throw error;
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? "Failed to resolve concern"
+        );
+    }
+
+    return data;
 }
 
 type BaseLivestockLogParams = {
-    closerCallBack: () => void;
-    onLogCreated: () => void | Promise<void>;
-    selectedLivestockId: number
+    selectedLivestockId: number;
     image: ImagePicker.ImagePickerAsset | null;
     logTitle: string;
     logDescription: string;
-}
+};
 
 type LogLivestockLogParams = BaseLivestockLogParams & {
     logType: "log";
-}
+};
 
 type ConcernLivestockLogParams = BaseLivestockLogParams & {
     logType: "concern";
-    concernSeverity: "low" | "moderate" | "high" | "critical" | undefined
-}
+    concernSeverity:
+        | "low"
+        | "moderate"
+        | "high"
+        | "critical"
+        | undefined;
+};
 
-type CreateLivestockLogParams = 
+type CreateLivestockLogParams =
     | LogLivestockLogParams
     | ConcernLivestockLogParams;
 
 export async function createLivestockLog(
     params: CreateLivestockLogParams
-): Promise<void> {
+) {
     const {
-        closerCallBack,
-        onLogCreated,
         logType,
         selectedLivestockId,
         image,
         logTitle,
-        logDescription
+        logDescription,
     } = params;
 
-    try {
-        closerCallBack();
+    const token = await SecureStore.getItemAsync("userToken");
 
-        // console.log(selectedLivestockId)
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
+    }
 
-        const token = await SecureStore.getItemAsync("userToken");
+    const formData = new FormData();
 
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
+    formData.append("type", logType);
 
-        const formData = new FormData();
-        formData.append("type", logType);
+    if (image?.uri) {
+        const file = new File(image.uri);
 
-        if (image?.uri) {
-            const file = new File(image.uri);
+        formData.append("image", file);
+    }
 
-            formData.append("image", file);
-        }
+    if (logType === "log") {
+        const data = {
+            title: logTitle,
+            description: logDescription,
+        };
 
-        if (logType === "log") {
-            const data = {
-                title: logTitle,
-                description: logDescription
-            }
+        formData.append("data", JSON.stringify(data));
+    } else {
+        const { concernSeverity } = params;
 
-            formData.append("data", JSON.stringify(data));
-        } else {
-            const { concernSeverity } = params;
-            const data = {
-                title: logTitle,
-                description: logDescription,
-                severity: concernSeverity,
-                status: "open",
-                action_taken: null
-            }
+        const data = {
+            title: logTitle,
+            description: logDescription,
+            severity: concernSeverity,
+            status: "open",
+            action_taken: null,
+        };
 
-            formData.append("data", JSON.stringify(data));
-        }
+        formData.append("data", JSON.stringify(data));
+    }
 
-        const response = await fetch(URANUS_URL + `/api/livestocks/${selectedLivestockId}/logs`, {
+    const response = await fetch(
+        URANUS_URL +
+            `/api/livestocks/${selectedLivestockId}/logs`,
+        {
             method: "POST",
             headers: {
                 Accept: "application/json",
                 Authorization: `Bearer ${token}`,
-                // DO NOT set Content-Type here
             },
-            body: formData
-        });
-
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                responseData.message ?? "Failed to create log"
-            );
+            body: formData,
         }
+    );
 
-        await onLogCreated();
-    } catch (error) {
-        console.log("CREATE LIVESTOCK ERROR:", error);
-        throw error;
+    const responseData = await response.json();
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
     }
+
+    if (!response.ok) {
+        throw new Error(
+            responseData.message ?? "Failed to create log"
+        );
+    }
+
+    return responseData;
 }
 
 export async function getMyOrgRole(
     selectedOrganizationId: number,
     userRoleSetter: Dispatch<SetStateAction<UserOrgRoleResponse | undefined>>
 ) {
-    try {
-        const token = await SecureStore.getItemAsync("userToken");
+    const token = await SecureStore.getItemAsync("userToken");
 
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
-
-        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/my-role`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (response.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        if (!response.ok) {
-            console.log("Reached Here")
-            console.log(await response.json())
-            throw new Error('Failed to load secure data.');
-        }
-
-        const responseJson = await response.json();
-        console.log(responseJson.data)
-        userRoleSetter(responseJson.data)
-    } catch (error) {
-        throw error;
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
     }
+
+    const response = await fetch(
+        URANUS_URL +
+            `/api/organizations/${selectedOrganizationId}/my-role`,
+        {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error("Failed to load secure data.");
+    }
+
+    const data = await response.json();
+
+    userRoleSetter(data.data);
 }
 
 export async function deleteLivestockLog(
-    logData: LivestockLogData | undefined,
-    onLogDelete: () => void | Promise<void>
+    livestockId: number,
+    logId: number
 ) {
-    try {
-        const token = await SecureStore.getItemAsync("userToken");
+    const token = await SecureStore.getItemAsync("userToken");
 
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
+    }
 
-        const response = await fetch(URANUS_URL + `/api/livestocks/${logData?.livestock_id}/logs/${logData?.id}`, {
-            method: 'DELETE',
+    const response = await fetch(
+        URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`,
+        {
+            method: "DELETE",
             headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            }
-        });
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
 
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
         const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data.message ?? 'Failed to delete log');
-        }
-
-        onLogDelete();
-    } catch (error) {
-        throw new Error(error as any);
+        throw new Error(
+            data.message ?? "Failed to delete log"
+        );
     }
+
+    return true;
 }
 
 export async function deleteLivestock(
-    livestockId: number | undefined,
-    selectedOrganizationId: number | null,
-    onLivestockDelete: () => void | Promise<void>
+    livestockId: number,
+    selectedOrganizationId: number
 ) {
-    try {
-        const token = await SecureStore.getItemAsync("userToken");
+    const token = await SecureStore.getItemAsync("userToken");
 
-        if (!token) {
-            throw new Error("No authorization token found. Please log in.");
-        }
-
-        const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}`, {
-            method: 'DELETE',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message ?? 'Failed to delete livestock');
-        }
-
-        onLivestockDelete();
-    } catch (error) {
-        throw new Error(error as any);
+    if (!token) {
+        throw new Error("No authorization token found. Please log in.");
     }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}`, {
+        method: 'DELETE',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        }
+    });
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to delete livestock');
+    }
+
+    return data;
+
 }

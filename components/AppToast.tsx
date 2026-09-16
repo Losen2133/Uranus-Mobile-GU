@@ -1,10 +1,10 @@
 import { HStack } from '@/components/ui/hstack';
 import { AlertCircleIcon, Icon } from '@/components/ui/icon';
 import {
-    Toast,
-    ToastDescription,
-    ToastTitle,
-    useToast,
+  Toast,
+  ToastDescription,
+  ToastTitle,
+  useToast,
 } from "@/components/ui/toast";
 import { VStack } from './ui/vstack';
 
@@ -28,10 +28,15 @@ export default function useAppToast() {
         <Toast nativeID={id} action={action}>
             <VStack space="xs">
                 <HStack space="sm" className="items-center">
-                    {(action === 'warning' || action === 'error') && (
-                        <Icon as={AlertCircleIcon} size="sm" />
+                    {(action === 'warning' || action === 'error') ? (
+                      <>
+                        <Icon as={AlertCircleIcon} size="sm" color={"red"} />
+                        <ToastTitle className='text-red-500'>{title}</ToastTitle>
+                      </>
+                    ) : (
+                      <ToastTitle>{title}</ToastTitle>
                     )}
-                    <ToastTitle>{title}</ToastTitle>
+                    
                 </HStack>
 
                 {description && (
