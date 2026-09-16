@@ -2,6 +2,7 @@ import { verifyMe } from '@/utils/apiFetch';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useNotifications } from './useNotification';
 import { useUserInfo } from './useUserInfo';
 import { useUserSettings } from './useUserSettings';
 
@@ -23,6 +24,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { setFetchedUserInfo, fetchedUserInfo } = useUserInfo();
     const { setFetchedUserSettings, fetchedUserSettings } = useUserSettings();
     const router = useRouter();
+
+    useNotifications(userToken);
+    
     const URANUS_URL = 'https://uranus.luscsusjr.dpdns.org'
 
     useEffect(() => {

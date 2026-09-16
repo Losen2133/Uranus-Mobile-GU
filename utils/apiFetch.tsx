@@ -1539,5 +1539,50 @@ export async function deleteLivestock(
     }
 
     return data;
+}
 
+export async function registerPushToken(
+    pushToken: string,
+    platform: string
+) {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
+    }
+
+    const response = await fetch(
+        URANUS_URL + "/api/user/push-token",
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                token: pushToken,
+                platform,
+            }),
+        }
+    );
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ??
+            "Failed to register push notification token."
+        );
+    }
+
+    return data;
 }

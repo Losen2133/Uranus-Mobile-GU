@@ -13,7 +13,7 @@ export default function Index() {
     useEffect(() => {
         if (!isLoading) {
             setIsRedirecting(true);
-            console.log("Reached here");
+            console.log(userToken)
         }
     }, [isLoading, userToken]);
 

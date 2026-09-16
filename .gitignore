@@ -39,3 +39,5 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+google-services.json
+uranus-mobile-4378e-firebase-adminsdk-fbsvc-8a71b43b28.json
