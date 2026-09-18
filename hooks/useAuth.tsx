@@ -1,4 +1,4 @@
-import { verifyMe } from '@/utils/apiFetch';
+import { getMe } from '@/utils/apiFetch';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return;
                 }
 
-                await verifyMe(setFetchedUserInfo, setFetchedUserSettings);
+                await getMe(setFetchedUserInfo, setFetchedUserSettings);
 
                 setUserToken(token);
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await SecureStore.setItemAsync('userToken', token);
 
                 // Verify token and fetch user data/settings
-                await verifyMe(
+                await getMe(
                     setFetchedUserInfo,
                     setFetchedUserSettings
                 );

@@ -6,9 +6,9 @@ import { Dispatch, SetStateAction } from "react";
 import { TempUnit } from "./stringUtils";
 const URANUS_URL = "https://uranus.luscsusjr.dpdns.org";
 
-export async function verifyMe(
+export async function getMe(
     userDataSetter: Dispatch<SetStateAction<UserData | null>>,
-    userSettingsDataSetter: Dispatch<SetStateAction<UserSettings | null>>
+    userSettingsDataSetter?: Dispatch<SetStateAction<UserSettings | null>>
 ) {
     try {
         const token = await SecureStore.getItemAsync('userToken');
@@ -37,11 +37,75 @@ export async function verifyMe(
         const json = await response.json();
 
         userDataSetter(json);
-        userSettingsDataSetter(json.settings);
+        if (userSettingsDataSetter) {
+            userSettingsDataSetter(json.settings);
+        }
+        
     } catch (error: any) {
         console.error("updateUserSettings error:", error);
         throw error;
     }
+}
+
+export async function updateMe({
+    userId,
+    userName,
+    userEmail,
+    image,
+}: {
+    userId: number;
+    userName?: string;
+    userEmail?: string;
+    image?: ImagePicker.ImagePickerAsset | null;
+}) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const formData = new FormData();
+
+    formData.append('_method', 'PATCH');
+
+    if (userName !== undefined) {
+        formData.append('name', userName);
+    }
+
+    if (userEmail !== undefined) {
+        formData.append('email', userEmail);
+    }
+
+    if (image?.uri) {
+        const file = new File(image.uri);
+        formData.append('image', file);
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/users/${userId}`,
+        {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        }
+    );
+
+    const responseData = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            responseData.message ?? 'Failed to update profile.'
+        );
+    }
+
+    return responseData;
 }
 
 export async function fetchOrgDashboard(
@@ -249,6 +313,8 @@ export async function fetchMemberData(
     const membersJson = await membersResponse.json();
     const rolesJson = await rolesResponse.json();
 
+    console.log(membersJson.data);
+
     memberSetter(membersJson.data);
     roleSetter(rolesJson);
 
@@ -286,6 +352,8 @@ export async function updateMemberRole(
     );
 
     const data = await response.json();
+
+    console.log(data);
 
     if (response.status === 401) {
         throw new Error('Session expired. Please log in again.');
@@ -1141,6 +1209,8 @@ export async function proceedToNextPhase(
 
     const data = await response.json();
 
+    console.log(data)
+
     if (response.status === 401) {
         throw new Error(
             'Session expired. Please log in again.'
@@ -1414,6 +1484,8 @@ export async function createLivestockLog(
     );
 
     const responseData = await response.json();
+
+    console.log(responseData);
 
     if (response.status === 401) {
         throw new Error(

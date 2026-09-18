@@ -42,6 +42,7 @@ export default function LivestockDetailPage() {
     const [livestockData, setLivestockData] = useState<LivestockData>();
     const { selectedOrganizationId } = useOrganization();
     const { fetchedUserSettings } = useUserSettings();
+    const [onAction, setOnAction] = useState(false);
     const [showActionsheet, setShowActionsheet] = useState(false);
     const [isChangingPhase, setIsChangingPhase] = useState(false);
     const [isHarvesting, setIsHarvesting] = useState(false);
@@ -92,6 +93,8 @@ export default function LivestockDetailPage() {
         }
 
         try {
+            setOnAction(true)
+
             await proceedToNextPhase(
                 Number(livestockId),
                 selectedOrganizationId
@@ -103,8 +106,13 @@ export default function LivestockDetailPage() {
                 description:
                     "The livestock has been updated to the next phase.",
             });
+            
+            setIsChangingPhase(false);
+            setOnAction(false);
 
             await handleFetchLivestock();
+
+
 
         } catch (error) {
             // const message =
@@ -117,6 +125,9 @@ export default function LivestockDetailPage() {
                 title: "Failed to Proceed",
                 description: "Failed to proceed to next phase, please try again later.",
             });
+
+            setIsChangingPhase(false);
+            setOnAction(false);
         }
     };
 
@@ -126,6 +137,8 @@ export default function LivestockDetailPage() {
         }
 
         try {
+            setOnAction(true);
+
             await harvestLivestock(
                 Number(livestockId),
                 selectedOrganizationId
@@ -137,6 +150,9 @@ export default function LivestockDetailPage() {
                 description:
                     "The livestock has been harvested.",
             });
+
+            setIsHarvesting(false);
+            setOnAction(false);
 
             await handleFetchLivestock();
 
@@ -151,6 +167,9 @@ export default function LivestockDetailPage() {
                 title: "Failed to Harvest",
                 description: "Failed to harvest livestock, please try again later.",
             });
+
+            setIsHarvesting(false);
+            setOnAction(false);
         }
     };
 
@@ -160,6 +179,8 @@ export default function LivestockDetailPage() {
         }
 
         try {
+            setOnAction(true);
+
             await deleteLivestock(
                 Number(livestockId),
                 selectedOrganizationId
@@ -171,6 +192,10 @@ export default function LivestockDetailPage() {
                 description:
                     "The livestock has been deleted.",
             });
+
+            setShowActionsheet(false);
+            setIsDeletingLivestock(false);
+            setOnAction(false);
 
             router.back();
 
@@ -185,6 +210,10 @@ export default function LivestockDetailPage() {
                 title: "Failed to Delete",
                 description: "Failed to delete livestock, please try again later.",
             });
+
+            setShowActionsheet(false);
+            setIsDeletingLivestock(false);
+            setOnAction(false);
         }
     };
 
@@ -321,7 +350,7 @@ export default function LivestockDetailPage() {
                         size="md"
                         placement="bottom right"
                         isHovered={false}
-                        isDisabled={false}
+                        isDisabled={onAction}
                         className="mb-15"
                         onPress={() => setShowActionsheet(true)}
                     >
@@ -429,7 +458,7 @@ export default function LivestockDetailPage() {
                         )}
                     </AlertDialogBody>
                     <AlertDialogFooter>
-                        <Button variant="outline" onPress={() => {
+                        <Button variant="outline" isDisabled={onAction} onPress={() => {
                             if (isChangingPhase) {
                                 setIsChangingPhase(false);
                             }
@@ -440,14 +469,13 @@ export default function LivestockDetailPage() {
                             <ButtonText>Cancel</ButtonText>
                         </Button>
                         <Button
+                            isDisabled={onAction}
                             onPress={() => {
                                 if (isChangingPhase) {
-                                    setIsChangingPhase(false);
                                     handleProceedToNextPhase();
                                 }
 
                                 if (isHarvesting) {
-                                    setIsHarvesting(false);
                                     handleHarvestLivestock();
                                 }
                             }}
@@ -477,12 +505,10 @@ export default function LivestockDetailPage() {
                         </Text>
                     </AlertDialogBody>
                     <AlertDialogFooter>
-                        <Button variant="outline" onPress={() => setIsDeletingLivestock(false)}>
+                        <Button variant="outline" isDisabled={onAction} onPress={() => setIsDeletingLivestock(false)}>
                             <ButtonText>Cancel</ButtonText>
                         </Button>
-                        <Button isDisabled={loading} onPress={() => {
-                            setIsDeletingLivestock(false);
-                            setShowActionsheet(false);
+                        <Button isDisabled={onAction} onPress={() => {
                             handleDeleteLivestock();
                         }}>
                             <ButtonText>Confirm</ButtonText>

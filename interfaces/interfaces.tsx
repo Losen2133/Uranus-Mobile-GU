@@ -4,9 +4,11 @@ export interface OrganizationMember {
   id: number;
   name: string;
   email: string;
+  image_url: string,
   role_id: number;
   role: string;
   active: boolean;
+  joined_at: string;
 }
 
 export interface OrganizationDashboardFetchResponse {
@@ -55,6 +57,7 @@ export interface UserData {
     updated_at: string;
     onboarding_mobile: boolean;
     onboarding_webapp: boolean;
+    image_url: string,
     settings: UserSettings;
 }
 

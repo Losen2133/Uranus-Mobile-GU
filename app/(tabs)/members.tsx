@@ -1,6 +1,7 @@
 import AddMemberModal from "@/components/AddMemberModal";
 import useAppToast from "@/components/AppToast";
 import MemberChangeRoleModal from "@/components/MemberChangeRoleModal";
+import MemberDetailModal from "@/components/MemberDetailModal";
 import SelectOrgDisplay from "@/components/SelectOrgDisplay";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
@@ -35,6 +36,7 @@ export default function MembersScreen() {
     const [isChangingStatus, setIsChangingStatus] = useState(false);
     const [statusChanging, setStatusChanging] = useState(false);
     const [isAddMember, setIsAddMember] = useState(false);
+    const [isViewingMember, setIsViewingMember] = useState(false);
     const { selectedOrganizationId } = useOrganization();
     const { fetchedUserInfo } = useUserInfo();
     const navigation = useNavigation();
@@ -325,7 +327,15 @@ export default function MembersScreen() {
                                     return (
                                         <Pressable
                                             key={item.id}
-                                            style={styles.itemContainer}
+                                            // style={styles.itemContainer}
+                                            style={({ pressed }) => [
+                                                styles.itemContainer,
+                                                pressed && styles.pressed,
+                                            ]}
+                                            onPress={() => {
+                                                setSelectedMember(item)
+                                                setIsViewingMember(true);
+                                            }}
                                         >   
                                             <VStack className="flex-1">
                                                 <HStack>
@@ -482,6 +492,14 @@ export default function MembersScreen() {
                     user={user}
                     onMemberAdded={handleAddMember}
                 />
+                <MemberDetailModal
+                    isOpen={isViewingMember}
+                    selectedMember={selectedMember}
+                    onClose={() => {
+                        setIsViewingMember(false);
+                        setSelectedMember(undefined);
+                    }}
+                />
             </KeyboardAvoidingView>
         </>
     )
@@ -489,7 +507,7 @@ export default function MembersScreen() {
 
 const styles = StyleSheet.create({
     itemContainer: {
-        // borderWidth: 2,
+        borderWidth: 2,
         // borderColor: 'yellow',
         borderRadius: 10,
         marginBottom: 10,
@@ -499,6 +517,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     pressed: {
-        backgroundColor: 'black'
+        backgroundColor: 'black',
+        borderColor: 'white'
     },
 })

@@ -228,6 +228,74 @@ export const logTitleField = (
     )
 }
 
+export const userNameField = (
+    userName: string,
+    userNameSetter: Dispatch<SetStateAction<string>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Name</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                    type='text'
+                    placeholder='Your name here...'
+                    placeholderTextColor={'gray'}
+                    value={userName}
+                    onChangeText={(text) => userNameSetter(text)}
+                />
+            </Input>
+            <FormControlError>
+                <FormControlErrorIcon
+                    as={AlertCircleIcon}
+                    className='text-destructive'
+                />
+                <FormControlErrorText className='text-destructive'>
+                    Please fill out this field
+                </FormControlErrorText>
+            </FormControlError>
+        </FormControl>
+    )
+}
+
+export const userEmailField = (
+    userEmail: string,
+    userEmailSetter: Dispatch<SetStateAction<string>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Email</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                    type='text'
+                    placeholder='Your email here...'
+                    placeholderTextColor={'gray'}
+                    value={userEmail}
+                    onChangeText={(text) => userEmailSetter(text)}
+                />
+            </Input>
+            <FormControlError>
+                <FormControlErrorIcon
+                    as={AlertCircleIcon}
+                    className='text-destructive'
+                />
+                <FormControlErrorText className='text-destructive'>
+                    Please fill out this field
+                </FormControlErrorText>
+            </FormControlError>
+        </FormControl>
+    )
+}
+
 export const livestockNameField = (
     livestockName: string,
     livestockNameSetter: Dispatch<SetStateAction<string>>,

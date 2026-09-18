@@ -50,7 +50,7 @@ export async function registerForPushNotifications() {
             projectId,
         });
 
-    console.log('Expo Push Token:', token.data);
+    // console.log('Expo Push Token:', token.data);
 
     return token.data;
 }

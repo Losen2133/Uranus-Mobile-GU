@@ -27,9 +27,7 @@ export function useNotifications(
                     "android"
                 );
 
-                console.log(
-                    "Push token registered with Laravel."
-                );
+                // console.log("Push token registered with Laravel.");
 
             } catch (error) {
 

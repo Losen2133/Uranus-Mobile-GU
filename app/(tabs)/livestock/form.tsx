@@ -21,7 +21,7 @@ export default function LivestockFormPage() {
     const { selectedOrganizationId } = useOrganization();
     const { fetchedUserSettings } = useUserSettings();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [onAction, setOnAction] = useState(false);
     const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
     const [livestockType, setLivestockType] = useState<"plant" | "fish">();
@@ -91,6 +91,8 @@ export default function LivestockFormPage() {
         setLoading(true);
 
         try {
+            setOnAction(true);
+
             if (livestockType === "plant") {
                 await createLivestock({
                     selectedOrganizationId,
@@ -125,13 +127,14 @@ export default function LivestockFormPage() {
                 });
             }
 
-            setIsCreatingLivestock(false);
-
             showToast({
                 action: "success",
                 title: "Livestock Created",
                 description: `${livestockName}, created successfully`,
             });
+
+            setIsCreatingLivestock(false);
+            setOnAction(false);
 
             router.back();
         } catch (error) {
@@ -140,13 +143,14 @@ export default function LivestockFormPage() {
             //         ? error.message
             //         : `Failed to create ${livestockName}`;
 
-            setIsCreatingLivestock(false);
-
             showToast({
                 action: "error",
                 title: "Livestock Creation Failed",
                 description: "Failed to create livestock, please try again later.",
             });
+
+            setIsCreatingLivestock(false);
+            setOnAction(false);
         } finally {
             setLoading(false);
         }
@@ -650,7 +654,7 @@ export default function LivestockFormPage() {
 
                                 <Button
                                     onPress={handleSubmit}
-                                    isDisabled={!isFormComplete}
+                                    isDisabled={!isFormComplete || onAction}
                                 >
                                     <ButtonText>Create Livestock</ButtonText>
                                 </Button>
@@ -685,10 +689,10 @@ export default function LivestockFormPage() {
                         </Text>
                     </AlertDialogBody>
                     <AlertDialogFooter>
-                        <Button variant="outline" onPress={() => setIsCreatingLivestock(false)}>
+                        <Button variant="outline" isDisabled={onAction} onPress={() => setIsCreatingLivestock(false)}>
                             <ButtonText>Cancel</ButtonText>
                         </Button>
-                        <Button onPress={() => {
+                        <Button isDisabled={onAction} onPress={() => {
                             if(livestockType === "plant") {
                                 handleCreateLivestock();
                             } else {
