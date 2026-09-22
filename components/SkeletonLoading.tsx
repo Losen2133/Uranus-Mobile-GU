@@ -12,7 +12,7 @@ import { Skeleton, SkeletonText } from './ui/skeleton';
 import { VStack } from './ui/vstack';
 
 type SkeletonLoadingProps = {
-    skeletonVariant?: "index" | "show" | "store"
+    skeletonVariant?: "index" | "index2" | "show" | "store"
     itemHeight?: number
 };
 
@@ -66,6 +66,47 @@ export default function SkeletonLoading({
                     <SkeletonText
                         _lines={1}
                         className='h-1'
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                </VStack>
+            </Animated.View>
+        );
+    }
+
+    if (skeletonVariant === "index2") {
+        return (
+            <Animated.View style={animatedStyle}>
+                <VStack space='md' className='p-2'>
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
+                    />
+                    <Skeleton
+                        variant={variant}
+                        style={{height: itemHeight}}
                     />
                     <Skeleton
                         variant={variant}

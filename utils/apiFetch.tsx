@@ -6,6 +6,57 @@ import { Dispatch, SetStateAction } from "react";
 import { TempUnit } from "./stringUtils";
 const URANUS_URL = "https://uranus.luscsusjr.dpdns.org";
 
+export async function changePassword({
+    currentPassword,
+    newPassword,
+    confirmPassword,
+}: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}) {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error(
+            "No authorization token found. Please log in."
+        );
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/change-password`,
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                current_password: currentPassword,
+                password: newPassword,
+                password_confirmation: confirmPassword,
+            }),
+        }
+    );
+
+    const responseData = await response.json();
+
+    if (response.status === 401) {
+        throw new Error(
+            "Session expired. Please log in again."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            responseData.message ?? "Failed to change password."
+        );
+    }
+
+    return responseData;
+}
+
 export async function getMe(
     userDataSetter: Dispatch<SetStateAction<UserData | null>>,
     userSettingsDataSetter?: Dispatch<SetStateAction<UserSettings | null>>

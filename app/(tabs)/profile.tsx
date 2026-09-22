@@ -6,7 +6,7 @@ import {
     userNameField
 } from "@/components/FormFields";
 import { Box } from "@/components/ui/box";
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
 import { Heading } from "@/components/ui/heading";
@@ -22,7 +22,9 @@ import { VStack } from "@/components/ui/vstack";
 import { UserData } from "@/interfaces/interfaces";
 import { getMe, updateMe } from "@/utils/apiFetch";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useNavigation, useRouter } from "expo-router";
+import { ShieldLock } from "lucide-react-native";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 export default function ProfileScreen() {
     const [userName, setUserName] = useState<string>('');
@@ -35,8 +37,22 @@ export default function ProfileScreen() {
     const [oldImage, setOldImage] = useState<string>('');
     const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
+    const navigation = useNavigation();
+    const router = useRouter();
 
     const { showToast } = useAppToast();
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () =>
+                <Button
+                    className="h-8 w-8 rounded-full p-0"
+                    onPress={() => router.push('/(tabs)/profile2')}
+                >
+                    <ButtonIcon as={ShieldLock} className="h-5 w-5" />
+                </Button>     
+        });
+    });
 
     const handleProfileFetcher = async () => {
         try {

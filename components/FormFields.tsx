@@ -262,6 +262,42 @@ export const userNameField = (
     )
 }
 
+export const passwordField = (
+    password: string,
+    passwordSetter: Dispatch<SetStateAction<string>>,
+    label: string,
+    isError: boolean,
+    errorMessage: string,
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>{label}</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                    type="password"
+                    placeholderTextColor={'gray'}
+                    value={password}
+                    onChangeText={(text) => passwordSetter(text)}
+                    autoCapitalize="none"
+                />
+            </Input>
+            <FormControlError>
+                <FormControlErrorIcon
+                    as={AlertCircleIcon}
+                    className='text-destructive'
+                />
+                <FormControlErrorText className='text-destructive'>
+                    {errorMessage}
+                </FormControlErrorText>
+            </FormControlError>
+        </FormControl>
+    )
+}
+
 export const userEmailField = (
     userEmail: string,
     userEmailSetter: Dispatch<SetStateAction<string>>,
@@ -279,7 +315,9 @@ export const userEmailField = (
                     type='text'
                     placeholder='Your email here...'
                     placeholderTextColor={'gray'}
+                    keyboardType='email-address'
                     value={userEmail}
+                    autoCapitalize="none"
                     onChangeText={(text) => userEmailSetter(text)}
                 />
             </Input>

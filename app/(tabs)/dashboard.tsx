@@ -1,15 +1,9 @@
-import LoaderDisplay from '@/components/LoaderDisplay';
 import SelectOrgDisplay from '@/components/SelectOrgDisplay';
+import SkeletonLoading from '@/components/SkeletonLoading';
+import { Accordion, AccordionContent, AccordionHeader, AccordionIcon, AccordionItem, AccordionTitleText, AccordionTrigger } from '@/components/ui/accordion';
 import { Box } from '@/components/ui/box';
 import { Heading } from '@/components/ui/heading';
-import {
-  Table,
-  TableBody,
-  TableData,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { ChevronDownIcon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { useFam } from '@/hooks/useFamOpacity';
@@ -17,101 +11,188 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { OrganizationDashboardData } from '@/interfaces/interfaces';
 import { fetchOrgDashboard } from '@/utils/apiFetch';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Dimensions } from 'react-native';
 import {
   GestureHandlerRootView,
-  ScrollView,
+  RefreshControl,
+  ScrollView
 } from 'react-native-gesture-handler';
-import {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 import { Carousel } from 'react-native-reanimated-carousel';
+
+// function OrganizationsTab({
+//   orgBriefData,
+// }: {
+//   orgBriefData: OrganizationDashboardData[] | undefined;
+// }) {
+//   if (orgBriefData === undefined) {
+//     return (
+//       <Box className="flex-1 items-center justify-center">
+//         <LoaderDisplay
+//           type="loading"
+//           message="Loading organizations..."
+//         />
+//       </Box>
+//     );
+//   }
+
+//   return (
+//     <ScrollView
+//       horizontal
+//       showsHorizontalScrollIndicator={false}
+//       nestedScrollEnabled
+//     >
+//       <Table className="w-[900px]">
+//         <TableHeader>
+//           <TableRow>
+//             <TableHead className="w-[200px] text-center">
+//               Organization Name
+//             </TableHead>
+
+//             <TableHead className="w-[180px] text-center">
+//               Owner
+//             </TableHead>
+
+//             <TableHead className="w-[150px] text-center">
+//               Members Count
+//             </TableHead>
+
+//             <TableHead className="w-[150px] text-center">
+//               Number of Livestocks
+//             </TableHead>
+
+//             <TableHead className="w-[150px] text-center">
+//               Available Sensors
+//             </TableHead>
+//           </TableRow>
+//         </TableHeader>
+
+//         <TableBody>
+//           {orgBriefData.map((organization) => (
+//             <TableRow key={organization.id}>
+//               <TableData className="w-[200px] text-center">
+//                 {organization.organization_name}
+//               </TableData>
+
+//               <TableData className="w-[180px]">
+//                 <VStack space="xs" className="items-center">
+//                   <Text className="text-center">
+//                     {organization.owner.name}
+//                   </Text>
+
+//                   <Text className="text-center text-xs text-gray-400">
+//                     {organization.owner.email}
+//                   </Text>
+//                 </VStack>
+//               </TableData>
+
+//               <TableData className="w-[150px] text-center">
+//                 {organization.members_count}
+//               </TableData>
+
+//               <TableData className="w-[150px] text-center">
+//                 {organization.livestocks_count}
+//               </TableData>
+
+//               <TableData className="w-[150px] text-center">
+//                 {organization.sensors_count}
+//               </TableData>
+//             </TableRow>
+//           ))}
+//         </TableBody>
+//       </Table>
+//     </ScrollView>
+//   );
+// }
 
 function OrganizationsTab({
   orgBriefData,
+  refreshing,
+  onRefresh,
 }: {
   orgBriefData: OrganizationDashboardData[] | undefined;
+  refreshing: boolean;
+  onRefresh: () => void;
 }) {
   if (orgBriefData === undefined) {
     return (
-      <Box className="flex-1 items-center justify-center">
-        <LoaderDisplay
-          type="loading"
-          message="Loading organizations..."
-        />
-      </Box>
+      <SkeletonLoading
+        skeletonVariant="index2"
+        itemHeight={50}
+      />
     );
   }
 
   return (
     <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      nestedScrollEnabled
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
     >
-      <Table className="w-[900px]">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[200px] text-center">
-              Organization Name
-            </TableHead>
+      <Accordion
+        type="single"
+        isCollapsible={true}
+        isDisabled={false}
+      >
+        {orgBriefData.map((org) => (
+          <AccordionItem
+            key={org.id}
+            value={`org-${org.id}`}
+            className="border border-white mb-2 rounded p-2"
+          >
+            <AccordionHeader>
+              <AccordionTrigger>
+                {({ isExpanded }: { isExpanded: boolean }) => (
+                  <>
+                    <AccordionTitleText className='font-bold'>
+                      {org.organization_name}
+                    </AccordionTitleText>
 
-            <TableHead className="w-[180px] text-center">
-              Owner
-            </TableHead>
+                    <AccordionIcon as={ChevronDownIcon} />
+                  </>
+                )}
+              </AccordionTrigger>
+            </AccordionHeader>
 
-            <TableHead className="w-[150px] text-center">
-              Members Count
-            </TableHead>
+            <AccordionContent className="border border-gray-500 rounded p-2">
+              <VStack space="sm">
+                <Box className="flex-row">
+                  <Text className="font-bold">Owner: </Text>
+                  <Text>{org.owner.name}</Text>
+                </Box>
 
-            <TableHead className="w-[150px] text-center">
-              Number of Livestocks
-            </TableHead>
+                <Box className="flex-row">
+                  <Text className="font-bold">Members: </Text>
+                  <Text>{org.members_count}</Text>
+                </Box>
 
-            <TableHead className="w-[150px] text-center">
-              Available Sensors
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {orgBriefData.map((organization) => (
-            <TableRow key={organization.id}>
-              <TableData className="w-[200px] text-center">
-                {organization.organization_name}
-              </TableData>
-
-              <TableData className="w-[180px]">
-                <VStack space="xs" className="items-center">
-                  <Text className="text-center">
-                    {organization.owner.name}
+                <Box className="flex-row">
+                  <Text className="font-bold">Livestocks: </Text>
+                  <Text className="text-green-500">
+                    {org.livestocks.plant}
                   </Text>
-
-                  <Text className="text-center text-xs text-gray-400">
-                    {organization.owner.email}
+                  <Text> / </Text>
+                  <Text className="text-blue-500">
+                    {org.livestocks.fish}
                   </Text>
-                </VStack>
-              </TableData>
+                  <Text> : </Text>
+                  <Text className="text-yellow-500">
+                    {org.livestocks.total}
+                  </Text>
+                </Box>
 
-              <TableData className="w-[150px] text-center">
-                {organization.members_count}
-              </TableData>
-
-              <TableData className="w-[150px] text-center">
-                {organization.livestocks_count}
-              </TableData>
-
-              <TableData className="w-[150px] text-center">
-                {organization.sensors_count}
-              </TableData>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                <Box className="flex-row">
+                  <Text className="font-bold">Sensors: </Text>
+                  <Text>{org.sensors_count}</Text>
+                </Box>
+              </VStack>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </ScrollView>
   );
 }
@@ -128,28 +209,24 @@ export default function DashboardScreen() {
     OrganizationDashboardData[] | undefined
   >(undefined);
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+
+    try {
+      await fetchOrgDashboard(setOrgBriefData);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const data = [
     { id: 1, title: 'Organizations' },
     { id: 2, title: 'Members' },
     { id: 3, title: 'Livestocks' },
     { id: 4, title: 'Sensors' },
   ];
-
-  const opacity = useSharedValue(0.5);
-
-  //set this up differently tomorrow
-
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withTiming(1, {duration: 800}),
-      -1,
-      true
-    )
-  },[]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
 
   useFocusEffect(
     useCallback(() => {
@@ -175,7 +252,9 @@ export default function DashboardScreen() {
       <Carousel
         style={{
           width,
-          height: height * 0.9,
+          height: height * 0.8,
+          // borderWidth: 1,
+          // borderColor: 'white'
         }}
         data={data}
         onConfigurePanGesture={(gesture) => {
@@ -202,6 +281,8 @@ export default function DashboardScreen() {
                 {item.id === 1 && (
                   <OrganizationsTab
                     orgBriefData={orgBriefData}
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
                   />
                 )}
                 {item.id === 2 && (

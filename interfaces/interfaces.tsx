@@ -24,7 +24,11 @@ export interface OrganizationDashboardData {
     email: string;
   }
   members_count: number
-  livestocks_count: number;
+  livestocks: {
+    total: number,
+    fish: number,
+    plant: number
+  }
   sensors_count: number;
 }
 

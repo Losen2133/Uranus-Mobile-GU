@@ -19,7 +19,8 @@ export default function TabLayout() {
     (segments[1] === "livestock" && segments[2] === "profileForm") ||
     (segments[1] === "sensors" && segments[2] === "[sensorId]") ||
     (segments[1] === "livestock" && segments[2] === "logs") ||
-    (segments[1] === "livestock" && segments[2] === "logForm");
+    (segments[1] === "livestock" && segments[2] === "logForm") ||
+    (segments[1] === "profile2");
 
 
   return (
@@ -85,6 +86,12 @@ export default function TabLayout() {
               headerLeft: () => (
                 <User color={'white'} size={titleIconSize} className="mx-5" />
               )
+            }}
+          />
+          <Stack.Screen
+            name="profile2"
+            options={{
+              title: " Change Password",
             }}
           />
           <Stack.Screen
