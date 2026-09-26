@@ -13,8 +13,8 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useFam } from "@/hooks/useFamOpacity";
 import { useOrganization } from "@/hooks/useOrganization";
-import { LivestockLogData, UserOrgRoleResponse } from "@/interfaces/interfaces";
-import { fetchLivestockLogData, getMyOrgRole } from "@/utils/apiFetch";
+import { LivestockLogData } from "@/interfaces/interfaces";
+import { fetchLivestockLogData } from "@/utils/apiFetch";
 import { toBoolean } from "@/utils/other";
 import { capitalize, formatDate } from "@/utils/stringUtils";
 import { Picker } from "@react-native-picker/picker";
@@ -52,8 +52,7 @@ export default function LivestockLogsPage() {
     const [selectedLog, setSelectedLog] = useState<LivestockLogData>();
     const [resolving, setResolving] = useState(false);
     const { showToast } = useAppToast();
-    const { selectedOrganizationId } = useOrganization();
-    const [userRole, setUserRole] = useState<UserOrgRoleResponse>();
+    const { selectedOrganizationId, selectedOrganizationUserRole } = useOrganization();
     const router = useRouter();
     
     const handleFetchLivestockLogs = async () => {
@@ -64,16 +63,10 @@ export default function LivestockLogsPage() {
         // setLoading(true);
 
         try {
-            await Promise.all([
-                getMyOrgRole(
-                    selectedOrganizationId,
-                    setUserRole
-                ),
-                fetchLivestockLogData(
-                    passedParams.id,
-                    setLivestockLogData
-                ),
-            ]);
+            await fetchLivestockLogData(
+                passedParams.id,
+                setLivestockLogData
+            )
         } catch (error) {
             // const message =
             //     error instanceof Error
@@ -398,7 +391,7 @@ export default function LivestockLogsPage() {
             <LogDetailModal
                 isOpen={logDetail}
                 onClose={() => setLogDetail(false)}
-                userRole={userRole}
+                userRole={selectedOrganizationUserRole}
                 logData={selectedLog}
                 onAction={() => {
                     handleFetchLivestockLogs()
@@ -408,7 +401,7 @@ export default function LivestockLogsPage() {
                 isOpen={concernDetail}
                 onClose={() => setConcernDetail(false)}
                 logData={selectedLog}
-                userRole={userRole}
+                userRole={selectedOrganizationUserRole}
                 severityColor={
                     selectedLog?.type === "concern"
                         ? severityStyles[selectedLog.data.severity]

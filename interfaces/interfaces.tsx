@@ -11,9 +11,45 @@ export interface OrganizationMember {
   joined_at: string;
 }
 
-export interface OrganizationDashboardFetchResponse {
-  status: string;
-  data: OrganizationDashboardData[]
+export interface SelectedOrgDashboardData {
+  members: SelectedOrgMembersSummaryData
+  livestocks: SelectedOrgLivestocksSummaryData
+  logs: SelectedOrgLivestocksLogsSummaryData
+}
+
+export interface SelectedOrgMembersSummaryData {
+  total: number,
+  active: number,
+  inactive: number,
+  roles: {
+    owner: number,
+    admin: number,
+    observer: number,
+    maintenance: number
+  }
+}
+
+export interface SelectedOrgLivestocksSummaryData {
+  total: number,
+  fish: number,
+  plant: number,
+  harvested: number
+}
+
+export interface SelectedOrgLivestocksLogsSummaryData {
+  total: number,
+  logs: number,
+  concerns: {
+    total: number,
+    open: number,
+    closed: number,
+    severity: {
+      low: number,
+      moderate: number,
+      high: number,
+      critical: number
+    }
+  }
 }
 
 export interface OrganizationDashboardData {
@@ -156,6 +192,7 @@ interface BaseLivestockData {
     updated_at: string;
     harvested: boolean;
     image_url: string;
+    open_concerns_count: number;
     date_of_harvest: string;
 }
 

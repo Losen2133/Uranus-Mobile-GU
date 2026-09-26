@@ -20,8 +20,8 @@ import { VStack } from "@/components/ui/vstack";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { LivestockData, UserOrgRoleResponse } from "@/interfaces/interfaces";
-import { deleteLivestock, fetchIndividualLivestock, getMyOrgRole, harvestLivestock, proceedToNextPhase } from "@/utils/apiFetch";
+import { LivestockData } from "@/interfaces/interfaces";
+import { deleteLivestock, fetchIndividualLivestock, harvestLivestock, proceedToNextPhase } from "@/utils/apiFetch";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Menu } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -40,7 +40,7 @@ export default function LivestockDetailPage() {
     }
     const [loading, setLoading] = useState(true);
     const [livestockData, setLivestockData] = useState<LivestockData>();
-    const { selectedOrganizationId } = useOrganization();
+    const { selectedOrganizationId, selectedOrganizationUserRole } = useOrganization();
     const { fetchedUserSettings } = useUserSettings();
     const [onAction, setOnAction] = useState(false);
     const [showActionsheet, setShowActionsheet] = useState(false);
@@ -48,7 +48,6 @@ export default function LivestockDetailPage() {
     const [isHarvesting, setIsHarvesting] = useState(false);
     const { showToast } = useAppToast();
     const router = useRouter();
-    const [userRole, setUserRole] = useState<UserOrgRoleResponse>();
     const { fetchedUserInfo } = useUserInfo();
     const [isDeletingLivestock, setIsDeletingLivestock] = useState(false);
 
@@ -60,17 +59,11 @@ export default function LivestockDetailPage() {
         // setLoading(true);
 
         try {
-            await Promise.all([
-                getMyOrgRole(
-                    selectedOrganizationId,
-                    setUserRole
-                ),
-                fetchIndividualLivestock(
-                    setLivestockData,
-                    Number(livestockId),
-                    selectedOrganizationId
-                ),
-            ]);
+            await fetchIndividualLivestock(
+                setLivestockData,
+                Number(livestockId),
+                selectedOrganizationId
+            )
         } catch (error) {
             const message =
                 error instanceof Error
@@ -272,8 +265,8 @@ export default function LivestockDetailPage() {
             
     const isUserAuthorized =
         livestockData?.added_by.id === fetchedUserInfo?.id ||
-        userRole?.data?.role === "owner" ||
-        userRole?.data?.role === "admin";
+        selectedOrganizationUserRole === "owner" ||
+        selectedOrganizationUserRole === "admin";
 
     return (
         <>

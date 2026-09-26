@@ -1,4 +1,4 @@
-import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SensorData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
+import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SelectedOrgDashboardData, SensorData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
@@ -160,36 +160,85 @@ export async function updateMe({
 }
 
 export async function fetchOrgDashboard(
-    orgDashboardDataSetter: Dispatch<SetStateAction<OrganizationDashboardData[] | undefined>>
+    orgDashboardDataSetter: Dispatch<
+        SetStateAction<OrganizationDashboardData[] | undefined>
+    >
 ) {
     try {
         const token = await SecureStore.getItemAsync('userToken');
 
-        if(!token) {
+        if (!token) {
             throw new Error('No authorization token found. Please log in.');
         }
 
-        const response = await fetch(URANUS_URL + `/api/organizations/dashboard`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        const response = await fetch(
+            URANUS_URL + '/api/organizations/dashboard',
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            }
+        );
 
         if (response.status === 401) {
             throw new Error('Session expired. Please log in again.');
         }
 
         if (!response.ok) {
-            throw new Error('Failed to load secure data.');
+            throw new Error('Failed to load organization dashboard.');
         }
 
         const json = await response.json();
+
         orgDashboardDataSetter(json.data);
-    } catch (error) {
-        console.error("updateUserSettings error:", error);
+    } catch (error: any) {
+        console.error('fetchOrgDashboard error:', error);
+        throw error;
+    }
+}
+
+export async function fetchSelectedOrgSummary(
+    organizationId: number | null,
+    dataSummarySetter: Dispatch<
+        SetStateAction<SelectedOrgDashboardData | undefined>
+    >
+) {
+    try {
+        const token = await SecureStore.getItemAsync('userToken');
+
+        if (!token) {
+            throw new Error('No authorization token found. Please log in.');
+        }
+
+        const response = await fetch(
+            URANUS_URL +
+                `/api/organizations/${organizationId}/selected/dashboard`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (response.status === 401) {
+            throw new Error('Session expired. Please log in again.');
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to load organization summary data.');
+        }
+
+        const json = await response.json();
+
+        dataSummarySetter(json.data);
+    } catch (error: any) {
+        console.error('fetchOrgMembersSummary error:', error);
         throw error;
     }
 }

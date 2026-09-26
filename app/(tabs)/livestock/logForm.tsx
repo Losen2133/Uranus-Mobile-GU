@@ -212,7 +212,7 @@ export default function LivestockLogFormPage() {
                     </AlertDialogHeader>
                     <AlertDialogBody className="mt-3 mb-4">
                         <Text className="text-sm text-muted-foreground">
-                            Confirming this will create {logTitle} and edits on this livestock will not be permitted after creation.
+                            Confirming this will create {logTitle} and edits on this concern will not be permitted after creation.
                         </Text>
                     </AlertDialogBody>
                     <AlertDialogFooter>

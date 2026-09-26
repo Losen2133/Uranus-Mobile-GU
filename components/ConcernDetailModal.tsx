@@ -1,5 +1,5 @@
 import { useUserInfo } from "@/hooks/useUserInfo";
-import { LivestockLogData, UserOrgRoleResponse } from "@/interfaces/interfaces";
+import { LivestockLogData } from "@/interfaces/interfaces";
 import { deleteLivestockLog } from "@/utils/apiFetch";
 import { capitalize, formatDate } from "@/utils/stringUtils";
 import { useState } from "react";
@@ -23,7 +23,7 @@ type ConcernDetailModalProps = {
     isOpen: boolean;
     onClose: () => void;
     logData: LivestockLogData | undefined
-    userRole: UserOrgRoleResponse | undefined;
+    userRole: string | null;
     severityColor: string | undefined;
     livestockId: number
     onAction: () => void | Promise<void>;
@@ -44,8 +44,8 @@ export default function ConcernDetailModal ({
     const [loading, setLoading] = useState(false);
     const isUserAuthorized =
         logData?.recorded_by.id === fetchedUserInfo?.id ||
-        userRole?.data?.role === "owner" ||
-        userRole?.data?.role === "admin";
+        userRole === "owner" ||
+        userRole === "admin";
     const { showToast } = useAppToast(); 
 
     const handleDeleteConcern = async () => {

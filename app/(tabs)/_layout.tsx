@@ -1,6 +1,7 @@
 import FloatingMenuButton from "@/components/FloatingMenuButton";
 import ModalMenu from "@/components/ModalMenu";
 import { useFam } from "@/hooks/useFamOpacity";
+import { useNotificationListener } from "@/hooks/useNotificationListener";
 import { OrganizationProvider } from "@/hooks/useOrganization";
 
 import { Stack, useSegments } from "expo-router";
@@ -22,10 +23,17 @@ export default function TabLayout() {
     (segments[1] === "livestock" && segments[2] === "logForm") ||
     (segments[1] === "profile2");
 
+  function NotificationListener() {
+    useNotificationListener();
+
+    return null;
+  }
+
 
   return (
     <>
       <OrganizationProvider>
+        <NotificationListener />
         <Stack>
           <Stack.Screen
             name="dashboard"
@@ -105,21 +113,21 @@ export default function TabLayout() {
             }}
           />
         </Stack>
-      </OrganizationProvider>
-      {!isUnincluded && (
-        <FloatingMenuButton
-          opacity={famOpacity}
-          opacitySetter={setFamOpacity}
+        {!isUnincluded && (
+          <FloatingMenuButton
+            opacity={famOpacity}
+            opacitySetter={setFamOpacity}
+            isOpen={menuVisible}
+            onOpen={() => setMenuVisible(true)}
+            onClose={() => setMenuVisible(false)}
+          />
+        )} 
+
+        <ModalMenu
           isOpen={menuVisible}
-          onOpen={() => setMenuVisible(true)}
           onClose={() => setMenuVisible(false)}
         />
-      )} 
-
-      <ModalMenu
-        isOpen={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+      </OrganizationProvider>
     </>
   );
 }

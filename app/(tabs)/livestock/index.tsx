@@ -268,6 +268,15 @@ export default function LivestockScreen() {
                                             })
                                         }}
                                     >
+                                        {item.open_concerns_count > 0 && (
+                                            <Box
+                                                className="absolute top-2 left-2 w-6 h-6 rounded-full bg-red-500 items-center justify-center z-10"
+                                            >
+                                                <Text className="text-white text-xs font-bold">
+                                                    {item.open_concerns_count}
+                                                </Text>
+                                            </Box>
+                                        )}
                                         <HStack space="md">
                                             <Center>
                                                 <Image

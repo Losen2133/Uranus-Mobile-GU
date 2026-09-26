@@ -8,6 +8,7 @@ import {
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
 import { useRouter, useSegments } from "expo-router";
 import { Building2, LayoutDashboard, Leaf, LogOut, Radar, Settings, User, UsersRound } from "lucide-react-native";
 import { useState } from "react";
@@ -50,6 +51,7 @@ export default function ModalMenu({
   const segments = useSegments();
   const currentPage = segments[1];
   const { signOut } = useAuth();
+  const { selectedOrganizationUserRole } = useOrganization();
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleNavigation = (route: string) => {
@@ -61,18 +63,51 @@ export default function ModalMenu({
     icon,
     label,
     onPress,
+    disabled = false
   }: {
     icon: React.ReactNode;
     label: string;
     onPress: () => void;
+    disabled?: boolean;
   }) => (
     <Pressable
       onPress={onPress}
-      className="w-24 h-24 m-3 rounded-2xl bg-white/15 active:bg-black items-center justify-center"
+      disabled={disabled}
+      className={`w-24 h-24 m-3 rounded-2xl items-center justify-center ${
+        disabled
+          ? "bg-white/5 opacity-40"
+          : "bg-white/15 active:bg-black"
+      }`}
     >
       {icon}
-      <Text className="text-white text-xs mt-2">{label}</Text>
+      <Text
+        className={`text-xs mt-2 ${
+          disabled ? "text-white/40" : "text-white"
+        }`}
+      >
+        {label}
+      </Text>
     </Pressable>
+  );
+
+  const hasRole = (...allowedRoles: string[]) =>
+    allowedRoles.includes(selectedOrganizationUserRole ?? "");
+
+  const canAccessLivestock = hasRole(
+    "owner",
+    "admin",
+    "observer"
+  );
+
+  const canAccessMembers = hasRole(
+    "owner",
+    "admin"
+  );
+
+  const canAccessSensors = hasRole(
+    "owner",
+    "admin",
+    "maintenance"
   );
 
   return (
@@ -104,6 +139,7 @@ export default function ModalMenu({
                       label="Members"
                       onPress={() => handleNavigation("/(tabs)/members")}
                       icon={<UsersRound color="white" size={40} />}
+                      disabled={!canAccessMembers}
                   />
               )}
 
@@ -114,6 +150,7 @@ export default function ModalMenu({
                       label="Sensors"
                       onPress={() => handleNavigation("/(tabs)/sensors")}
                       icon={<Radar color="white" size={40} />}
+                      disabled={!canAccessSensors}
                   />
               )}
 
@@ -124,6 +161,7 @@ export default function ModalMenu({
                       label="Livestock"
                       onPress={() => handleNavigation("/(tabs)/livestock")}
                       icon={<Leaf color="white" size={40} />}
+                      disabled={!canAccessLivestock}
                   />
               )}
               

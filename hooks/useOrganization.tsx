@@ -3,6 +3,8 @@ import { createContext, ReactNode, useContext, useState } from 'react';
 type OrganizationContextType = {
     selectedOrganizationId: number | null;
     setSelectedOrganizationId: (id: number | null) => void;
+    selectedOrganizationUserRole: string | null;
+    setSelectedOrganizationUserRole: (role: string | null) => void;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -14,11 +16,15 @@ export function OrganizationProvider({
 }) {
     const [selectedOrganizationId, setSelectedOrganizationId] = useState<number | null>(null);
 
+    const [selectedOrganizationUserRole, setSelectedOrganizationUserRole] = useState<string | null>(null);
+
     return (
         <OrganizationContext.Provider
             value={{
                 selectedOrganizationId,
-                setSelectedOrganizationId
+                setSelectedOrganizationId,
+                selectedOrganizationUserRole,
+                setSelectedOrganizationUserRole
             }}
         >
             {children}

@@ -1,5 +1,5 @@
 import { useUserInfo } from "@/hooks/useUserInfo";
-import { LivestockLogData, UserOrgRoleResponse } from "@/interfaces/interfaces";
+import { LivestockLogData } from "@/interfaces/interfaces";
 import { deleteLivestockLog } from "@/utils/apiFetch";
 import { formatDate } from "@/utils/stringUtils";
 import { useState } from "react";
@@ -20,7 +20,7 @@ import { VStack } from "./ui/vstack";
 type LogDetailModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    userRole: UserOrgRoleResponse | undefined;
+    userRole: string | null;
     logData: LivestockLogData | undefined;
     onAction: () => void | Promise<void>;
 }
@@ -36,8 +36,8 @@ export default function LogDetailModal ({
     const [isDeletingLog, setIsDeletingLog] = useState(false);
     const isUserAuthorized =
         logData?.recorded_by.id === fetchedUserInfo?.id ||
-        userRole?.data?.role === "owner" ||
-        userRole?.data?.role === "admin";
+        userRole === "owner" ||
+        userRole === "admin";
     const [loading, setLoading] = useState(false);
     const { showToast } = useAppToast();  
     
