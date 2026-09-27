@@ -1,5 +1,5 @@
 import useAppToast from "@/components/AppToast";
-import { imageField, imagePickerModal, livestockDescriptionField, livestockNameField, livestockProfilePickerField, livestockTypeField, numberField, speciesNameField, useLivestockProfileField } from "@/components/FormFields";
+import { frequencyField, imageField, imagePickerModal, livestockDescriptionField, livestockNameField, livestockProfilePickerField, livestockTypeField, notifyField, numberField, speciesNameField, timePicker, useLivestockProfileField } from "@/components/FormFields";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
@@ -52,6 +52,11 @@ export default function LivestockFormPage() {
     const [isInvalidAge, setIsInvalidAge] = useState(false);
     const [age, setAge] = useState<number>();
     const [isCreatingLivestock, setIsCreatingLivestock] = useState(false);
+    const [notify, setNotify] = useState(false);
+    const [frequency, setFrequency] = useState<'daily' | 'weekly'>();
+    const [isInvalidFrequency, setIsInvalidFrequency] = useState(false);
+    const [notificationTime, setNotificationTime] = useState<Date | undefined>();
+    const [isInvalidNotificationTime, setIsInvalidNotificationTime] = useState(false);
     const router = useRouter();
     const { showToast } = useAppToast();
     
@@ -108,6 +113,9 @@ export default function LivestockFormPage() {
                     maxPh,
                     harvestDays,
                     nurseryDays,
+                    notify,
+                    frequency,
+                    notificationTime,
                 });
             } else {
                 await createLivestock({
@@ -124,6 +132,9 @@ export default function LivestockFormPage() {
                     maxPh,
                     growthDays,
                     age,
+                    notify,
+                    frequency,
+                    notificationTime,
                 });
             }
 
@@ -271,6 +282,8 @@ export default function LivestockFormPage() {
         setIsInvalidMaxPh(false);
         setIsInvalidHarvestDays(false);
         setIsInvalidNurseryDays(false);
+        setIsInvalidFrequency(false);
+        setIsInvalidNotificationTime(false);
 
         if (!livestockName.trim()) {
             setIsInvalidLivestockName(true);
@@ -343,6 +356,18 @@ export default function LivestockFormPage() {
             valid = false;
         }
 
+        if (notify) {
+            if (!frequency) {
+                setIsInvalidFrequency(true);
+                valid = false;
+            }
+
+            if (!notificationTime) {
+                setIsInvalidNotificationTime(true);
+                valid = false;
+            }
+        }
+
         return valid;
     };
 
@@ -367,6 +392,13 @@ export default function LivestockFormPage() {
             livestockType === "fish"
                 ? growthDays !== undefined && age !== undefined
                 : harvestDays !== undefined && nurseryDays !== undefined
+        ) &&
+        (
+            !notify ||
+            (
+                frequency !== undefined &&
+                notificationTime !== undefined
+            )
         );
 
     return (
@@ -392,6 +424,23 @@ export default function LivestockFormPage() {
                                     description,
                                     setDescription,
                                     isInvalidDescription
+                                )}
+                                <Divider />
+                                {notifyField(
+                                    notify,
+                                    setNotify
+                                )}
+                                {notify && (
+                                    <>
+                                        {frequencyField(
+                                            frequency,
+                                            setFrequency
+                                        )}
+                                        {timePicker(
+                                            notificationTime,
+                                            setNotificationTime
+                                        )}
+                                    </>
                                 )}
                                 <Divider />
                                 {useLivestockProfileField(
@@ -693,6 +742,7 @@ export default function LivestockFormPage() {
                             <ButtonText>Cancel</ButtonText>
                         </Button>
                         <Button isDisabled={onAction} onPress={() => {
+                            console.log("Pressed Confirm")
                             if(livestockType === "plant") {
                                 handleCreateLivestock();
                             } else {

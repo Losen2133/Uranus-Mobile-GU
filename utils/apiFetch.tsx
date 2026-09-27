@@ -826,6 +826,9 @@ export async function fetchIndividualLivestockProfile(
 type BaseLivestockParams = {
     selectedOrganizationId: number;
     image: ImagePicker.ImagePickerAsset | null;
+    notify: boolean;
+    frequency: 'daily' | 'weekly' | undefined;
+    notificationTime: Date | undefined;
     liveStockName: string;
     description: string;
     speciesName: string | undefined;
@@ -867,6 +870,9 @@ export async function createLivestock(
         tempUnit,
         minPh,
         maxPh,
+        notify,
+        frequency,
+        notificationTime,
     } = params;
 
     const token = await SecureStore.getItemAsync("userToken");
@@ -883,6 +889,35 @@ export async function createLivestock(
     formData.append("type", livestockType);
     formData.append("species_name", speciesName ?? "");
     formData.append("description", description);
+
+    // Laravel boolean validation
+    formData.append("notify", notify ? "1" : "0");
+
+    // Only send notification settings when notifications are enabled
+    if (notify) {
+        if (!frequency || !notificationTime) {
+            throw new Error(
+                "Frequency and notification time are required when notifications are enabled."
+            );
+        }
+
+        formData.append("frequency", frequency);
+
+        // Convert Date to H:i format expected by Laravel
+        const formattedTime = notificationTime.toLocaleTimeString(
+            "en-US",
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+            }
+        );
+
+        formData.append(
+            "notification_time",
+            formattedTime
+        );
+    }
 
     if (image?.uri) {
         const file = new File(image.uri);
@@ -922,7 +957,7 @@ export async function createLivestock(
             },
             ph_range: {
                 min: minPh,
-                max: maxPh,
+                max: maxTemp,
             },
         };
 
@@ -943,13 +978,18 @@ export async function createLivestock(
 
     const responseData = await response.json();
 
+    console.log(responseData);
+
     if (response.status === 401) {
-        throw new Error("Session expired. Please log in again.");
+        throw new Error(
+            "Session expired. Please log in again."
+        );
     }
 
     if (!response.ok) {
         throw new Error(
-            responseData.message ?? "Failed to create livestock"
+            responseData.message ??
+                "Failed to create livestock"
         );
     }
 

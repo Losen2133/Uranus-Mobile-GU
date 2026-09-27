@@ -5,10 +5,11 @@ import { Dispatch, SetStateAction } from "react"
 import { Box } from "./ui/box"
 import { Button, ButtonIcon, ButtonText } from "./ui/button"
 import { Center } from "./ui/center"
+import { DateTimePicker, DateTimePickerIcon, DateTimePickerInput, DateTimePickerTrigger } from "./ui/date-time-picker"
 import { FormControl, FormControlError, FormControlErrorIcon, FormControlErrorText, FormControlHelper, FormControlHelperText, FormControlLabel, FormControlLabelText } from "./ui/form-control"
 import { Heading } from "./ui/heading"
 import { HStack } from "./ui/hstack"
-import { AlertCircleIcon, CloseIcon, Icon } from "./ui/icon"
+import { AlertCircleIcon, ClockIcon, CloseIcon, Icon } from "./ui/icon"
 import { Image } from "./ui/image"
 import { Input, InputField } from "./ui/input"
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalHeader } from "./ui/modal"
@@ -91,6 +92,107 @@ export const livestockTypeField = (
         </Box>
     )
 }
+
+export const notifyField = (
+    notify: boolean,
+    notifySetter: Dispatch<SetStateAction<boolean>>
+) => {
+    return (
+        <Box>
+            <VStack space="md">
+                <Text className="font-bold">
+                    Get Notified?
+                </Text>
+
+                <HStack space="md">
+                    <Button
+                        className="flex-1"
+                        variant={notify ? "default" : "outline"}
+                        onPress={() => notifySetter(true)}
+                    >
+                        <ButtonText>
+                            Yes
+                        </ButtonText>
+                    </Button>
+
+                    <Button
+                        className="flex-1"
+                        variant={!notify ? "default" : "outline"}
+                        onPress={() => notifySetter(false)}
+                    >
+                        <ButtonText>
+                            No
+                        </ButtonText>
+                    </Button>
+                </HStack>
+            </VStack>
+        </Box>
+    )
+}
+
+export const frequencyField = (
+    frequency: 'daily' | 'weekly' | undefined,
+    frequencySetter: Dispatch<SetStateAction<'daily' | 'weekly' | undefined>>
+) => {
+    return (
+        <Box>
+            <VStack space="md">
+                <Text className="font-bold">
+                    Get Notified?
+                </Text>
+
+                <HStack space="md">
+                    <Button
+                        className="flex-1"
+                        variant={frequency === 'daily' ? "default" : "outline"}
+                        onPress={() => frequencySetter('daily')}
+                    >
+                        <ButtonText>
+                            Daily
+                        </ButtonText>
+                    </Button>
+
+                    <Button
+                        className="flex-1"
+                        variant={frequency === 'weekly' ? "default" : "outline"}
+                        onPress={() => frequencySetter('weekly')}
+                    >
+                        <ButtonText>
+                            Weekly
+                        </ButtonText>
+                    </Button>
+                </HStack>
+            </VStack>
+        </Box>
+    )
+}
+
+export const timePicker = (
+  notificationTime: Date | undefined,
+  notificationTimeSetter: Dispatch<SetStateAction<Date | undefined>>
+) => {
+  return (
+    <Box className="w-full">
+        <VStack space="md">
+            <Text className="font-bold">
+                Trigger notification on
+            </Text>
+            <DateTimePicker
+                value={notificationTime}
+                onChange={notificationTimeSetter}
+                mode="time"
+                placeholder="Select time"
+                format="HH:mm"
+            >   
+            <DateTimePickerTrigger>
+                <DateTimePickerInput />
+                <DateTimePickerIcon as={ClockIcon} />
+            </DateTimePickerTrigger>
+            </DateTimePicker>
+        </VStack>
+    </Box>
+  );
+};
 
 export const imageField = (
     image: string | null,

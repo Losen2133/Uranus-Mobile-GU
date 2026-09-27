@@ -1,0 +1,67 @@
+export default {
+  expo: {
+    name: "Uranus-Mobile-GU",
+    slug: "Uranus-Mobile-GU",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "uranusmobilegu",
+    userInterfaceStyle: "automatic",
+
+    ios: {
+      supportsTablet: true,
+    },
+
+    android: {
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
+
+      adaptiveIcon: {
+        backgroundColor: "#232323",
+        foregroundImage: "./assets/images/android-icon-foreground.png",
+        backgroundImage: "./assets/images/android-icon-background.png",
+        monochromeImage: "./assets/images/android-icon-monochrome.png",
+      },
+
+      predictiveBackGestureEnabled: false,
+      package: "com.uranus.UranusMobile",
+    },
+
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png",
+    },
+
+    plugins: [
+      "expo-router",
+
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/splash-icon.png",
+          resizeMode: "contain",
+          backgroundColor: "#232323",
+          dark: {
+            backgroundColor: "#000000",
+          },
+        },
+      ],
+
+      "expo-secure-store",
+      "expo-notifications",
+      "@react-native-community/datetimepicker",
+    ],
+
+    experiments: {
+      typedRoutes: true,
+    },
+
+    extra: {
+      router: {},
+
+      eas: {
+        projectId: "330d5cfb-9967-49fc-a692-05d8ea4c13c7",
+      },
+    },
+  },
+};

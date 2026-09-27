@@ -192,6 +192,9 @@ interface BaseLivestockData {
     updated_at: string;
     harvested: boolean;
     image_url: string;
+    notify: boolean;
+    frequency: string;
+    notification_time: string;
     open_concerns_count: number;
     date_of_harvest: string;
 }
