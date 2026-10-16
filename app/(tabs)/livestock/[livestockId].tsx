@@ -264,7 +264,7 @@ export default function LivestockDetailPage() {
         livestockData.data.phase === "growbed";
             
     const isUserAuthorized =
-        livestockData?.added_by.id === fetchedUserInfo?.id ||
+        livestockData?.added_by === fetchedUserInfo?.id ||
         selectedOrganizationUserRole === "owner" ||
         selectedOrganizationUserRole === "admin";
 

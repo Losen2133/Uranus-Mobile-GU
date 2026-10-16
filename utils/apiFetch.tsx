@@ -1407,49 +1407,6 @@ export async function harvestLivestock(
     return data;
 }
 
-export async function fetchSensorData(
-    loadingSetter: Dispatch<SetStateAction<boolean>>,
-    errorSetter: Dispatch<SetStateAction<string | null>>,
-    livestockSetter: Dispatch<SetStateAction<SensorData[] | undefined>>,
-    selectedOrganizationId: number | null,
-) {
-    try {
-        if (loadingSetter) loadingSetter(true)
-        if (errorSetter) errorSetter(null)
-
-        const token = await SecureStore.getItemAsync('userToken');
-
-        if(!token) {
-            throw new Error('No authorization token found. Please log in.');
-        }
-
-        // api/organizations/{organization}/sensors
-        const sensorResponse = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (sensorResponse.status === 401) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        if (!sensorResponse.ok) {
-            throw new Error('Failed to load sensor data.');
-        }
-
-        const sensorJson = await sensorResponse.json();
-        livestockSetter(sensorJson.data);
-    } catch (error: any) {
-        if(errorSetter) errorSetter(error.message || 'An error occurred');
-    } finally {
-        if(loadingSetter) loadingSetter(false);
-    }
-}
-
 export async function fetchLivestockLogData(
     livestockId: number,
     livestockLogsSetter: Dispatch<SetStateAction<LivestockLogData[]>>
@@ -1775,7 +1732,7 @@ export async function registerPushToken(
                 Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-                token: pushToken,
+                push_token: pushToken,
                 platform,
             }),
         }
@@ -1798,3 +1755,127 @@ export async function registerPushToken(
 
     return data;
 }
+
+export async function fetchSensorData(
+    selectedOrganizationId: number,
+    sensorSetter: Dispatch<SetStateAction<SensorData[]>>,
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors`, {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error('Failed to load secure data.');
+    }
+
+    const json = await response.json();
+
+    sensorSetter(json.data);
+}
+
+export async function logoutUser(pushToken: string | null) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authenticated session found.');
+    }
+
+    const response = await fetch(
+        URANUS_URL + '/api/logout',
+        {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                push_token: pushToken,
+            }),
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to log out.');
+    }
+
+    return data;
+}
+
+
+export async function deleteAccount(
+    password: string,
+    userId: number | undefined
+) {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error("No authorization token found. Please log in.");
+    }
+
+    if (userId === undefined) {
+        throw new Error("User ID is missing.");
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/users/${userId}`,
+        {
+            method: "DELETE",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ password }),
+        }
+    );
+
+    // HTTP 204 responses must not be parsed as JSON.
+    if (response.status === 204) {
+        return { message: "Account deleted successfully." };
+    }
+
+    // Read the body as text first to handle empty or non-JSON responses.
+    const responseText = await response.text();
+
+    let data: { message?: string; errors?: unknown } = {};
+
+    if (responseText) {
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to delete account. Server returned HTTP ${response.status}.`
+                );
+            }
+        }
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ?? "Failed to delete account."
+        );
+    }
+
+    return data;
+}
+

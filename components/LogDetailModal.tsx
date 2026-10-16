@@ -35,7 +35,7 @@ export default function LogDetailModal ({
     const { fetchedUserInfo } = useUserInfo();
     const [isDeletingLog, setIsDeletingLog] = useState(false);
     const isUserAuthorized =
-        logData?.recorded_by.id === fetchedUserInfo?.id ||
+        logData?.recorded_by === fetchedUserInfo?.id ||
         userRole === "owner" ||
         userRole === "admin";
     const [loading, setLoading] = useState(false);
@@ -150,7 +150,7 @@ export default function LogDetailModal ({
                                         <Box>
                                             <Heading size="sm" className="mb-2">Recorded By</Heading>
                                             <Box className="border-2 border-dashed border-gray-500 rounded p-2">
-                                                <Text>{logData.recorded_by.name}</Text>
+                                                <Text>{logData.recorded_by_name}</Text>
                                             </Box>
                                         </Box>
                                         

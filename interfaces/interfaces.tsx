@@ -180,11 +180,9 @@ export interface LivestockFishTypeData {
 interface BaseLivestockData {
     id: number;
     organization_id: number;
-    added_by: {
-      id: number,
-      name: string,
-      email: string
-    }
+    added_by: number;
+    added_by_name: string;
+    added_by_email: string;
     species_name: string;
     livestock_name: string;
     description: string;
@@ -217,6 +215,8 @@ interface BaseLivestockProfileData {
     id: number;
     organization_id: number;
     added_by: number;
+    added_by_name: string;
+    added_by_email: string;
     species_name: string;
     description: string;
     created_at: string;
@@ -246,40 +246,16 @@ export interface LiveStockLogs {
   updated_at: string;
 }
 
-export interface SensorData {
-  id: number;
-  organization_id: number;
-  name: string;
-  type: string;
-  status: string;
-  metadata: {
-    chip_id: string;
-    device_id: string;
-    device_model: string;
-    firmware_version: string;
-  };
-  created_at: string;
-  updated_at: string;
-  purpose: string;
-  sensor_type: string;
-  registration_status: string;
-  registered_at: string;
-  last_seen_at: string;
-  is_offline: boolean;
-}
-
 interface BaseLivestockLogsData {
   id: number;
   livestock_id: number;
   image_url: string;
-  recorded_by: {
-    id: number;
-    name: string;
-  };
-  resolved_by: {
-    id: number;
-    name: string;
-  };
+  recorded_by: number;
+  recorded_by_name: string;
+  recorded_by_email: string;
+  resolved_by: number;
+  resolved_by_name: string;
+  resolved_by_email: string;
   created_at: string;
   updated_at: string;
 }
@@ -310,3 +286,23 @@ export interface ConcernLivestockLogData extends BaseLivestockLogsData {
 export type LivestockLogData = 
   | LogLivestockLogData
   | ConcernLivestockLogData
+
+export interface SensorData {
+  id: number;
+  organization_id: number;
+  name: string;
+  type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  device_id: string;
+  purpose: string;
+  chip_id: string;
+  firmware_version: string;
+  registration_status: string;
+  registered_at: string;
+  last_seen_at: string;
+  device_model: string;
+  is_offline: boolean;
+  unit: string;
+}

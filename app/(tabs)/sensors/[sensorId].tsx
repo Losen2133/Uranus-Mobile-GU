@@ -81,9 +81,35 @@ export default function SensorReadingPage() {
         <>
             <View className="flex-1">
                 {chartLink && (
+                    // <WebView
+                    //     source={{ uri: chartLink }}
+                    //     style={{ flex: 1 }}
+                    //     onLoadStart={() => {
+                    //         setIsWebViewLoading(true);
+                    //     }}
+                    //     onLoadEnd={() => {
+                    //         setIsWebViewLoading(false);
+                    //     }}
+                    // />
                     <WebView
                         source={{ uri: chartLink }}
                         style={{ flex: 1 }}
+                        javaScriptEnabled
+                        injectedJavaScript={`
+                            (function() {
+                                let viewport = document.querySelector('meta[name="viewport"]');
+
+                                if (!viewport) {
+                                    viewport = document.createElement('meta');
+                                    viewport.name = 'viewport';
+                                    document.head.appendChild(viewport);
+                                }
+
+                                viewport.content = 'width=device-width, initial-scale=0.75, maximum-scale=1.0';
+
+                                true;
+                            })();
+                        `}
                         onLoadStart={() => {
                             setIsWebViewLoading(true);
                         }}

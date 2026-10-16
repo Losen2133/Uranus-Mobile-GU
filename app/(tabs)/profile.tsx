@@ -1,10 +1,12 @@
 import useAppToast from "@/components/AppToast";
+import DeleteAccountModal from "@/components/DeleteAccountModal";
 import {
     imageField,
     imagePickerModal,
     userEmailField,
     userNameField
 } from "@/components/FormFields";
+import { AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
@@ -19,8 +21,9 @@ import {
 } from "@/components/ui/image-viewer";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { useAuth } from "@/hooks/useAuth";
 import { UserData } from "@/interfaces/interfaces";
-import { getMe, updateMe } from "@/utils/apiFetch";
+import { deleteAccount, getMe, updateMe } from "@/utils/apiFetch";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
 import { ShieldLock } from "lucide-react-native";
@@ -37,22 +40,27 @@ export default function ProfileScreen() {
     const [oldImage, setOldImage] = useState<string>('');
     const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const [isDeleteWarning, setIsDeleteWarning] = useState(false);
     const navigation = useNavigation();
+    const [password, setPassword] = useState<string>('');
     const router = useRouter();
+    const { resetSession } = useAuth();
 
     const { showToast } = useAppToast();
 
     useLayoutEffect(() => {
         navigation.setOptions({
-            headerRight: () =>
+            headerRight: () => (
                 <Button
                     className="h-8 w-8 rounded-full p-0"
-                    onPress={() => router.push('/(tabs)/profile2')}
+                    onPress={() => router.push("/(tabs)/profile2")}
                 >
                     <ButtonIcon as={ShieldLock} className="h-5 w-5" />
-                </Button>     
+                </Button>
+            ),
         });
-    });
+    }, [navigation, router]);
 
     const handleProfileFetcher = async () => {
         try {
@@ -100,6 +108,55 @@ export default function ProfileScreen() {
                 action: 'error',
                 title: 'Failed to Update Profile',
                 description: 'Failed to update profile data, please try again later',
+            });
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!userData?.id) {
+            showToast({
+                action: "error",
+                title: "Failed to Delete Account",
+                description: "Unable to identify your account.",
+            });
+            return;
+        }
+
+        if (!password.trim()) {
+            showToast({
+                action: "error",
+                title: "Password Required",
+                description: "Please enter your password.",
+            });
+            return;
+        }
+
+        try {
+            await deleteAccount(password, userData.id);
+
+            showToast({
+                action: "success",
+                title: "Account Deleted",
+                description: "Your account has been successfully deleted.",
+            });
+
+            setIsDeletingAccount(false);
+            setPassword("");
+
+            await resetSession();
+
+            // Return to the index route for session evaluation.
+            router.replace("/");
+        } catch (error) {
+            console.error("Failed to delete account:", error);
+
+            showToast({
+                action: "error",
+                title: "Failed to Delete Account",
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to delete your account. Please try again later.",
             });
         }
     };
@@ -275,6 +332,15 @@ export default function ProfileScreen() {
                     >
                         <ButtonText>Save</ButtonText>
                     </Button>
+
+                    <Button
+                        // variant="destructive"
+                        onPress={() => setIsDeleteWarning(true)}
+                    >
+                        <ButtonText className="text-red-500">
+                            Delete Account
+                        </ButtonText>
+                    </Button>
                 </VStack>
             )}
 
@@ -284,6 +350,51 @@ export default function ProfileScreen() {
                 takePhoto,
                 pickImage
             )}
+
+            
+            <DeleteAccountModal
+                isOpen={isDeletingAccount}
+                onClose={() => {
+                    setIsDeletingAccount(false);
+                    setPassword("");
+                }}
+                onAction={handleDeleteAccount}
+                password={password}
+                setPassword={setPassword}
+            />
+
+            <AlertDialog
+                isOpen={isDeleteWarning}
+                onClose={() => setIsDeleteWarning(false)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <Heading className="text-foreground font-semibold text-lg">Confirm Account Deletion</Heading>
+                    </AlertDialogHeader>
+                    <AlertDialogBody className="mt-3 mb-4">
+                        <Text className="text-sm text-muted-foreground">
+                            Are you sure you want to delete your account? All the organizations that you own will be deleted as well. We recommend to turn over the ownership of these organizations before proceeding as this action cannot be undone.
+                        </Text>
+                    </AlertDialogBody>
+                    <AlertDialogFooter>
+                        <Button
+                            variant="outline"
+                            onPress={() => setIsDeleteWarning(false)}
+                        >
+                            <ButtonText>Cancel</ButtonText>
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onPress={() => {
+                                setIsDeleteWarning(false);
+                                setIsDeletingAccount(true);
+                            }}
+                        >
+                            <ButtonText>Delete Account</ButtonText>
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

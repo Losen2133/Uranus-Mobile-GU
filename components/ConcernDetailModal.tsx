@@ -43,7 +43,7 @@ export default function ConcernDetailModal ({
     const [isDeletingConcern, setIsDeletingConcern] = useState(false);
     const [loading, setLoading] = useState(false);
     const isUserAuthorized =
-        logData?.recorded_by.id === fetchedUserInfo?.id ||
+        logData?.recorded_by === fetchedUserInfo?.id ||
         userRole === "owner" ||
         userRole === "admin";
     const { showToast } = useAppToast(); 
@@ -170,7 +170,7 @@ export default function ConcernDetailModal ({
                                         <Box>
                                             <Heading size="sm">Recorded By</Heading>
                                             <Box className="border-2 border-dashed border-gray-500 rounded p-2">
-                                                <Text>{logData.recorded_by.name}</Text>
+                                                <Text>{logData.recorded_by_name}</Text>
                                             </Box>
                                         </Box>
                                         
@@ -197,7 +197,7 @@ export default function ConcernDetailModal ({
                                                 <Box>
                                                     <Heading size="sm">Resolved By</Heading>
                                                     <Box className="border-2 border-dashed border-gray-500 rounded p-2">
-                                                        <Text>{logData.resolved_by.name}</Text>
+                                                        <Text>{logData.resolved_by_name}</Text>
                                                     </Box>
                                                 </Box>
 

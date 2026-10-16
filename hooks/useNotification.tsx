@@ -1,45 +1,51 @@
+
 import { registerPushToken } from "@/utils/apiFetch";
 import { registerForPushNotifications } from "@/utils/notifications";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function useNotifications(
     userToken: string | null
 ) {
+    const [pushToken, setPushToken] = useState<string | null>(null);
 
     useEffect(() => {
-
-        if (!userToken) {
-            return;
-        }
+        let isMounted = true;
 
         const setupNotifications = async () => {
-            try {
+            if (!userToken) {
+                setPushToken(null);
+                return;
+            }
 
-                const pushToken =
+            try {
+                const expoPushToken =
                     await registerForPushNotifications();
 
-                if (!pushToken) {
+                if (!expoPushToken || !isMounted) {
                     return;
                 }
 
+                setPushToken(expoPushToken);
+
                 await registerPushToken(
-                    pushToken,
+                    expoPushToken,
                     "android"
                 );
 
-                // console.log("Push token registered with Laravel.");
-
             } catch (error) {
-
                 console.error(
                     "Notification setup failed:",
                     error
                 );
-
             }
         };
 
         setupNotifications();
 
+        return () => {
+            isMounted = false;
+        };
     }, [userToken]);
+
+    return { pushToken };
 }

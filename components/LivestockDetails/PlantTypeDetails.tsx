@@ -194,7 +194,7 @@ export function PlantTypeDetails({ livestock, userSettings }: PlantTypeDetailsPr
                     </Text>
 
                     <Text className="text-center">
-                        {livestock.added_by.name}
+                        {livestock.added_by_name}
                     </Text>
                 </VStack>
                 

@@ -1,33 +1,49 @@
-import { getMe } from '@/utils/apiFetch';
+
+import { getMe, logoutUser } from '@/utils/apiFetch';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
 import { useNotifications } from './useNotification';
 import { useUserInfo } from './useUserInfo';
 import { useUserSettings } from './useUserSettings';
 
-const AuthContext = createContext<{
+type AuthContextType = {
     userToken: string | null;
+    pushToken: string | null;
     isLoading: boolean;
     signIn: (token: string) => Promise<void>;
     signOut: () => Promise<void>;
-}>({
+    resetSession: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType>({
     userToken: null,
+    pushToken: null,
     isLoading: true,
     signIn: async () => {},
     signOut: async () => {},
+    resetSession: async () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
     const [userToken, setUserToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { setFetchedUserInfo, fetchedUserInfo } = useUserInfo();
-    const { setFetchedUserSettings, fetchedUserSettings } = useUserSettings();
+
+    const { setFetchedUserInfo } = useUserInfo();
+    const { setFetchedUserSettings } = useUserSettings();
     const router = useRouter();
 
-    useNotifications(userToken);
-    
-    const URANUS_URL = 'https://uranus.luscsusjr.dpdns.org'
+    // Obtain the Expo push token from the notification hook.
+    const { pushToken } = useNotifications(userToken);
 
     useEffect(() => {
         const checkSession = async () => {
@@ -39,13 +55,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return;
                 }
 
-                await getMe(setFetchedUserInfo, setFetchedUserSettings);
+                await getMe(
+                    setFetchedUserInfo,
+                    setFetchedUserSettings
+                );
 
                 setUserToken(token);
-
             } catch (error) {
                 await SecureStore.deleteItemAsync('userToken');
-
                 setUserToken(null);
             } finally {
                 setIsLoading(false);
@@ -55,59 +72,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkSession();
     }, []);
 
+    const resetSession = async () => {
+        await SecureStore.deleteItemAsync("userToken");
+
+        setUserToken(null);
+        setFetchedUserInfo(null);
+        setFetchedUserSettings(null);
+    };
+
     return (
-        <AuthContext.Provider value={{
-            userToken,
-            isLoading,
-            signIn: async (token: string) => {
-                // Save token first
-                await SecureStore.setItemAsync('userToken', token);
+        <AuthContext.Provider
+            value={{
+                userToken,
+                pushToken,
+                isLoading,
+                resetSession,
 
-                // Verify token and fetch user data/settings
-                await getMe(
-                    setFetchedUserInfo,
-                    setFetchedUserSettings
-                );
+                signIn: async (token: string) => {
+                    await SecureStore.setItemAsync('userToken', token);
 
-                // Only mark the user as authenticated after
-                // user information has been fetched
-                setUserToken(token);
+                    await getMe(
+                        setFetchedUserInfo,
+                        setFetchedUserSettings
+                    );
 
-                // Go through app/index.tsx
-                router.replace('/');
-            },
-            signOut: async () => {
-                try {
-                    // 1. Get the current token so you can send it to the server
-                    const token = await SecureStore.getItemAsync('userToken');
+                    setUserToken(token);
+                    router.replace('/');
+                },
 
-                    if (token) {
-                    // 2. Tell the server to invalidate the token
-                    await fetch(URANUS_URL + '/api/logout', {
-                        method: 'POST', // or DELETE, depending on your API
-                        headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // Pass the token to identify the session
-                        }
-                    });
+                signOut: async () => {
+                    try {
+                        // Send the push token before clearing authentication.
+                        await logoutUser(pushToken);
+                    } catch (error) {
+                        console.error(
+                            'Server logout failed:',
+                            error
+                        );
+                    } finally {
+                        await SecureStore.deleteItemAsync('userToken');
+
+                        setUserToken(null);
+                        setFetchedUserInfo(null);
+                        setFetchedUserSettings(null);
+
+                        router.replace('/(auth)/login');
                     }
-                } catch (error) {
-                    // If the user is offline or the server is down, we catch the error 
-                    // so the app doesn't crash, but we STILL proceed to the finally block.
-                    console.error("Server logout failed, but proceeding with local logout", error);
-                } finally {
-                    // 3. ALWAYS clear the local storage and state, no matter what happened above
-                    await SecureStore.deleteItemAsync('userToken');
-                    setUserToken(null);
-                    setFetchedUserInfo(null);
-                    setFetchedUserSettings(null);
-                    router.replace('/(auth)/login');
-                }
-            },
-        }}>
+                },
+            }}
+        >
             {children}
         </AuthContext.Provider>
-    )
+    );
 }
 
 export const useAuth = () => useContext(AuthContext);
