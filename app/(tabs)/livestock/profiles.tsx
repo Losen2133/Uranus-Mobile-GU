@@ -1,4 +1,5 @@
 import useAppToast from "@/components/AppToast";
+import LivestockProfileDetailModal from "@/components/LivestockProfileDetailModal";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
@@ -8,9 +9,8 @@ import { Divider } from "@/components/ui/divider";
 import { Fab, FabIcon, FabLabel } from "@/components/ui/fab";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
-import { AddIcon, Icon, SearchIcon } from "@/components/ui/icon";
+import { AddIcon, SearchIcon } from "@/components/ui/icon";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
-import { Menu, MenuItem, MenuItemLabel } from "@/components/ui/menu";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useFam } from "@/hooks/useFamOpacity";
@@ -20,7 +20,6 @@ import { deleteLivestockProfile, fetchLivestockProfileData } from "@/utils/apiFe
 import { capitalize, formatDate } from "@/utils/stringUtils";
 import { Picker } from "@react-native-picker/picker";
 import { useFocusEffect, useRouter } from "expo-router";
-import { EllipsisVertical, SquarePen, Trash2 } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, SectionList, StyleSheet } from "react-native";
 
@@ -36,6 +35,8 @@ export default function LivestockProfilesScreen() {
     const router = useRouter();
     const { famOpacity, setFamOpacity } = useFam();
     const { showToast } = useAppToast();
+    const [selectedProfile, setSelectedProfile] = useState<LivestockProfileData | undefined>(undefined);
+    const [isProfileDetailOpen, setIsProfileDetailOpen] = useState(false);
 
     const handleFetchLivestockProfiles = async () => {
         if (!selectedOrganizationId) {
@@ -252,9 +253,13 @@ export default function LivestockProfilesScreen() {
                         renderItem={({ item }) => (
                             <Pressable
                                 key={item.id}
+                                onPress={() => {
+                                    setSelectedProfile(item);
+                                    setIsProfileDetailOpen(true);
+                                }}
                                 style={({ pressed }) => [
                                     styles.item,
-                                    pressed && styles.pressed
+                                    pressed && styles.pressed,
                                 ]}
                             >
                                 <HStack>
@@ -272,7 +277,7 @@ export default function LivestockProfilesScreen() {
                                             {item.description}
                                         </Text>
                                     </Box>
-                                    <Menu
+                                    {/* <Menu
                                         className="w-fit"
                                         placement="bottom right"
                                         closeOnSelect
@@ -303,14 +308,21 @@ export default function LivestockProfilesScreen() {
                                             key="Delete"
                                             textValue="Delete"
                                             onPress={() => {
-                                                setToDeleteLivestockProfile(item);
-                                                setIsDeletingLivestockProfile(true);
+                                                setSelectedProfile(item);
+                                                setIsProfileDetailOpen(true);
                                             }}
                                         >
-                                            <Icon as={Trash2} color="red" size="sm" className="mr-2" />
-                                            <MenuItemLabel className="text-red-500">Delete</MenuItemLabel>
+                                            <Icon
+                                                as={Trash2}
+                                                color="red"
+                                                size="sm"
+                                                className="mr-2"
+                                            />
+                                            <MenuItemLabel className="text-red-500">
+                                                Delete
+                                            </MenuItemLabel>
                                         </MenuItem>
-                                    </Menu>
+                                    </Menu> */}
                                 </HStack>
                                 
                             </Pressable>
@@ -366,6 +378,23 @@ export default function LivestockProfilesScreen() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <LivestockProfileDetailModal
+                isOpen={isProfileDetailOpen}
+                onClose={() => setIsProfileDetailOpen(false)}
+                profileData={selectedProfile}
+                organizationId={selectedOrganizationId}
+                onEdit={(profile) => {
+                    setIsProfileDetailOpen(false);
+
+                    router.push({
+                        pathname: "/(tabs)/livestock/profileForm",
+                        params: {
+                            selectedProfileId: profile.id,
+                        },
+                    });
+                }}
+                onAction={handleFetchLivestockProfiles}
+            />
         </>
     )
 }
