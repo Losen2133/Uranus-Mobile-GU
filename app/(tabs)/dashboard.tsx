@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { useFam } from '@/hooks/useFamOpacity';
 import { useOrganization } from '@/hooks/useOrganization';
-import { OrganizationDashboardData, SelectedOrgDashboardData, SelectedOrgLivestocksLogsSummaryData, SelectedOrgLivestocksSummaryData, SelectedOrgMembersSummaryData } from '@/interfaces/interfaces';
+import { OrganizationDashboardData, SelectedOrgDashboardData, SelectedOrgLivestocksLogsSummaryData, SelectedOrgLivestocksSummaryData, SelectedOrgMembersSummaryData, SelectedOrgSensorsSummaryData, } from '@/interfaces/interfaces';
 import { fetchOrgDashboard, fetchSelectedOrgSummary } from '@/utils/apiFetch';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -265,6 +265,95 @@ function LivestockTab({
     );
 }
 
+
+function SensorsTab({
+  sensorsBriefData,
+  refreshing,
+  onRefresh,
+}: {
+  sensorsBriefData: SelectedOrgSensorsSummaryData | undefined;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  if (sensorsBriefData === undefined) {
+    return (
+      <SkeletonLoading
+        skeletonVariant="index2"
+        itemHeight={50}
+      />
+    );
+  }
+
+  return (
+    <ScrollView
+      stickyHeaderIndices={[0]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
+      <Box className="bg-gray-800 rounded p-2 mb-2">
+        <Heading className="text-center text-white">
+          Sensors
+        </Heading>
+      </Box>
+
+      <VStack space="sm">
+        <Box className="flex-row border border-dashed border-gray-500 rounded p-2 justify-center">
+          <Text className="font-bold text-yellow-500">
+            Total Sensors:{' '}
+          </Text>
+          <Text>{sensorsBriefData.total}</Text>
+        </Box>
+
+        <Box className="flex-row border border-dashed border-gray-500 rounded p-2 justify-center">
+          <Text className="font-bold text-green-500">
+            Online Sensors:{' '}
+          </Text>
+          <Text>{sensorsBriefData.online}</Text>
+        </Box>
+
+        <Box className="flex-row border border-dashed border-gray-500 rounded p-2 justify-center">
+          <Text className="font-bold text-red-500">
+            Offline Sensors:{' '}
+          </Text>
+          <Text>{sensorsBriefData.offline}</Text>
+        </Box>
+
+        <Divider className="mt-2" />
+
+        <Heading className="text-center mt-2 mb-2">
+          Sensors by Purpose
+        </Heading>
+
+        <Box className="flex-row border border-dashed border-gray-500 rounded p-2 justify-center">
+          <Text className="font-bold text-orange-500">
+            Temperature Sensors:{' '}
+          </Text>
+          <Text>{sensorsBriefData.temperature}</Text>
+        </Box>
+
+        <Box className="flex-row border border-dashed border-gray-500 rounded p-2 justify-center">
+          <Text className="font-bold text-blue-500">
+            pH Sensors:{' '}
+          </Text>
+          <Text>{sensorsBriefData.ph}</Text>
+        </Box>
+
+        <Box className="flex-row border border-dashed border-gray-500 rounded p-2 justify-center">
+          <Text className="font-bold text-cyan-500">
+            Water Level Sensors:{' '}
+          </Text>
+          <Text>{sensorsBriefData.water_level}</Text>
+        </Box>
+      </VStack>
+    </ScrollView>
+  );
+}
+
+
 export default function DashboardScreen() {
   const { selectedOrganizationId } = useOrganization();
   const { width, height } = Dimensions.get('window');
@@ -389,6 +478,13 @@ export default function DashboardScreen() {
                   <LivestockTab
                     livestockBriefData={selectedOrgSummaryData?.livestocks}
                     livestockLogsBriefData={selectedOrgSummaryData?.logs}
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
+                  />
+                )}
+                {item.id === 4 && (
+                  <SensorsTab
+                    sensorsBriefData={selectedOrgSummaryData?.sensors}
                     refreshing={refreshing}
                     onRefresh={handleRefresh}
                   />

@@ -236,6 +236,9 @@ export async function fetchSelectedOrgSummary(
 
         const json = await response.json();
 
+        console.log("Reached Here");
+        console.log(json.data);
+
         dataSummarySetter(json.data);
     } catch (error: any) {
         console.error('fetchOrgMembersSummary error:', error);

@@ -15,6 +15,7 @@ export interface SelectedOrgDashboardData {
   members: SelectedOrgMembersSummaryData
   livestocks: SelectedOrgLivestocksSummaryData
   logs: SelectedOrgLivestocksLogsSummaryData
+  sensors: SelectedOrgSensorsSummaryData
 }
 
 export interface SelectedOrgMembersSummaryData {
@@ -50,6 +51,15 @@ export interface SelectedOrgLivestocksLogsSummaryData {
       critical: number
     }
   }
+}
+
+export interface SelectedOrgSensorsSummaryData {
+  total: number;
+  online: number;
+  offline: number;
+  temperature: number;
+  ph: number;
+  water_level: number;
 }
 
 export interface OrganizationDashboardData {
