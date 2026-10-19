@@ -1,4 +1,8 @@
 import useAppToast from "@/components/AppToast";
+import {
+    imageField,
+    imagePickerModal,
+} from "@/components/FormFields";
 import { FishTypeDetails } from "@/components/LivestockDetails/FishTypeDetails";
 import { PlantTypeDetails } from "@/components/LivestockDetails/PlantTypeDetails";
 import SkeletonLoading from "@/components/SkeletonLoading";
@@ -21,7 +25,8 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { LivestockData } from "@/interfaces/interfaces";
-import { deleteLivestock, fetchIndividualLivestock, harvestLivestock, proceedToNextPhase } from "@/utils/apiFetch";
+import { deleteLivestock, fetchIndividualLivestock, harvestLivestock, proceedToNextPhase, updateLivestockImage } from "@/utils/apiFetch";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Menu } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -50,6 +55,12 @@ export default function LivestockDetailPage() {
     const router = useRouter();
     const { fetchedUserInfo } = useUserInfo();
     const [isDeletingLivestock, setIsDeletingLivestock] = useState(false);
+    const [image, setImage] =
+        useState<ImagePicker.ImagePickerAsset | null>(null);
+
+    const [changeImage, setChangeImage] = useState(false);
+    const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+    const [isUpdatingImage, setIsUpdatingImage] = useState(false);
 
     const handleFetchLivestock = async () => {
         if (!selectedOrganizationId || !livestockId) {
@@ -210,6 +221,102 @@ export default function LivestockDetailPage() {
         }
     };
 
+    
+    const pickImage = async () => {
+        const permission =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+            showToast({
+                action: "error",
+                title: "Permission Required",
+                description: "Please allow access to your photo library.",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0]);
+            setIsImagePickerOpen(false);
+        }
+    };
+
+    const takePhoto = async () => {
+        const permission =
+            await ImagePicker.requestCameraPermissionsAsync();
+
+        if (!permission.granted) {
+            showToast({
+                action: "error",
+                title: "Permission Required",
+                description: "Please allow access to your camera.",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0]);
+            setIsImagePickerOpen(false);
+        }
+    };
+
+    const handleUpdateLivestockImage = async () => {
+        if (
+            !selectedOrganizationId ||
+            !livestockData?.id ||
+            !image
+        ) {
+            return;
+        }
+
+        try {
+            setIsUpdatingImage(true);
+
+            await updateLivestockImage(
+                selectedOrganizationId,
+                livestockData.id,
+                image
+            );
+
+            await handleFetchLivestock();
+
+            setImage(null);
+            setChangeImage(false);
+
+            showToast({
+                action: "success",
+                title: "Livestock Image Updated",
+                description: "The livestock image has been updated successfully.",
+            });
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Failed to Update Image",
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to update the livestock image. Please try again.",
+            });
+        } finally {
+            setIsUpdatingImage(false);
+        }
+    };
+
+
     useFocusEffect(
         useCallback(() => {
             const fetchData = async () => {
@@ -286,38 +393,80 @@ export default function LivestockDetailPage() {
                     <VStack className="flex-1 p-5"
                         space="md"
                     >
-                        <Center className=" mb-3">
-                            {livestockData?.image_url ? (
-                                <ImageViewer
-                                    images={[
-                                        {
-                                            url: livestockData.image_url,
-                                            alt: livestockData.livestock_name ?? "Log image",
-                                        },
-                                    ]}
-                                >
-                                    <ImageViewerTrigger>
-                                        <Center>
-                                            <Image
-                                                source={{ uri: livestockData.image_url }}
-                                                alt={livestockData.livestock_name ?? "Log image"}
-                                                className="border-3 border-white rounded"
-                                                resizeMode="cover"
-                                                size="xl"
-                                            />
-                                        </Center>
-                                    </ImageViewerTrigger>
+                        
+                        <Center className="mb-3">
+                            {!changeImage ? (
+                                <>
+                                    {livestockData.image_url ? (
+                                        <ImageViewer
+                                            images={[
+                                                {
+                                                    url: livestockData.image_url,
+                                                    alt: livestockData.livestock_name ?? "Livestock Image",
+                                                },
+                                            ]}
+                                        >
+                                            <ImageViewerTrigger>
+                                                <Center>
+                                                    <Image
+                                                        source={{ uri: livestockData.image_url }}
+                                                        alt={livestockData.livestock_name ?? "Livestock Image"}
+                                                        className="border-3 border-white rounded"
+                                                        resizeMode="cover"
+                                                        size="xl"
+                                                    />
+                                                </Center>
+                                            </ImageViewerTrigger>
 
-                                    <ImageViewerContent>
-                                        <ImageViewerCloseButton />
-                                    </ImageViewerContent>
-                                </ImageViewer>
+                                            <ImageViewerContent>
+                                                <ImageViewerCloseButton />
+                                            </ImageViewerContent>
+                                        </ImageViewer>
+                                    ) : (
+                                        <Center className="bg-gray-200 rounded border-3 border-white w-32 h-32">
+                                            <Text className="text-gray-500 text-center">
+                                                No image available
+                                            </Text>
+                                        </Center>
+                                    )}
+
+                                    {isUserAuthorized && (
+                                        <Button
+                                            className="mt-3"
+                                            onPress={() => setChangeImage(true)}
+                                        >
+                                            <ButtonText>Change Livestock Image</ButtonText>
+                                        </Button>
+                                    )}
+                                </>
                             ) : (
-                                <Center className="bg-gray-200 rounded border-3 border-white w-32 h-32">
-                                    <Text className="text-gray-500 text-center">
-                                        No image available
-                                    </Text>
-                                </Center>
+                                <VStack className="w-full" space="md">
+                                    {imageField(
+                                        image?.uri ?? null,
+                                        setIsImagePickerOpen,
+                                        "Livestock Image"
+                                    )}
+
+                                    <Button
+                                        onPress={handleUpdateLivestockImage}
+                                        isDisabled={!image || isUpdatingImage || onAction}
+                                    >
+                                        <ButtonText>
+                                            {isUpdatingImage ? "Uploading Image..." : "Save Image"}
+                                        </ButtonText>
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        isDisabled={isUpdatingImage}
+                                        onPress={() => {
+                                            setChangeImage(false);
+                                            setImage(null);
+                                        }}
+                                    >
+                                        <ButtonText>Cancel</ButtonText>
+                                    </Button>
+                                </VStack>
                             )}
                         </Center>
                         
@@ -509,6 +658,12 @@ export default function LivestockDetailPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {imagePickerModal(
+                isImagePickerOpen,
+                setIsImagePickerOpen,
+                takePhoto,
+                pickImage
+            )}
         </>
     )
 }

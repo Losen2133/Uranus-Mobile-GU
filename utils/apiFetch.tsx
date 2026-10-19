@@ -2128,3 +2128,46 @@ export async function deleteSensorMaintenanceReminder(
 
     return data;
 }
+
+export async function updateLivestockImage(
+    selectedOrganizationId: number,
+    livestockId: number,
+    image: ImagePicker.ImagePickerAsset
+) {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error("No authorization token found. Please log in.");
+    }
+
+    const formData = new FormData();
+
+    // This matches the File API approach used in your existing
+    // livestock image upload implementation.
+    formData.append("image", new File(image.uri));
+
+    // Laravel-compatible method spoofing for multipart uploads.
+    formData.append("_method", "PUT");
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}/livestocks/${livestockId}/image`,
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        }
+    );
+
+    const json = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            json.message || "Failed to update livestock image."
+        );
+    }
+
+    return json.data;
+}
