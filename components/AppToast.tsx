@@ -1,52 +1,66 @@
-import { HStack } from '@/components/ui/hstack';
-import { AlertCircleIcon, Icon } from '@/components/ui/icon';
+
+import { HStack } from "@/components/ui/hstack";
+import { AlertCircleIcon, Icon } from "@/components/ui/icon";
 import {
   Toast,
   ToastDescription,
   ToastTitle,
   useToast,
 } from "@/components/ui/toast";
-import { VStack } from './ui/vstack';
+import { useCallback } from "react";
+import { VStack } from "./ui/vstack";
 
-export default function useAppToast() {
-  const toast = useToast();
-
-  const showToast = ({
-    action = "muted",
-    title,
-    description,
-    placement = "top",
-  }: {
+type AppToastOptions = {
     action?: "success" | "error" | "warning" | "info" | "muted";
     title: string;
     description?: string;
     placement?: "top" | "bottom";
-  }) => {
-    toast.show({
-      placement,
-      render: ({ id }) => (
-        <Toast nativeID={id} action={action}>
-            <VStack space="xs">
-                <HStack space="sm" className="items-center">
-                    {(action === 'warning' || action === 'error') ? (
-                      <>
-                        <Icon as={AlertCircleIcon} size="sm" color={"red"} />
-                        <ToastTitle className='text-red-500'>{title}</ToastTitle>
-                      </>
-                    ) : (
-                      <ToastTitle>{title}</ToastTitle>
-                    )}
-                    
-                </HStack>
+};
 
-                {description && (
-                <ToastDescription>{description}</ToastDescription>
-                )}
-            </VStack>
-        </Toast>
-      ),
-    });
-  };
+export default function useAppToast() {
+    const toast = useToast();
 
-  return { showToast };
+    const showToast = useCallback(
+        ({
+            action = "muted",
+            title,
+            description,
+            placement = "top",
+        }: AppToastOptions) => {
+            toast.show({
+                placement,
+                render: ({ id }) => (
+                    <Toast nativeID={id} action={action}>
+                        <VStack space="xs">
+                            <HStack space="sm" className="items-center">
+                                {action === "warning" || action === "error" ? (
+                                    <>
+                                        <Icon
+                                            as={AlertCircleIcon}
+                                            size="sm"
+                                            color="red"
+                                        />
+                                        <ToastTitle className="text-red-500">
+                                            {title}
+                                        </ToastTitle>
+                                    </>
+                                ) : (
+                                    <ToastTitle>{title}</ToastTitle>
+                                )}
+                            </HStack>
+
+                            {description && (
+                                <ToastDescription>
+                                    {description}
+                                </ToastDescription>
+                            )}
+                        </VStack>
+                    </Toast>
+                ),
+            });
+        },
+        [toast]
+    );
+
+    return { showToast };
 }

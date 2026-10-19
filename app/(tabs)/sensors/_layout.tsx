@@ -22,6 +22,28 @@ export default function TabLayout() {
                     title: "Sensor Graph",
                 }}
             />
+
+            <Stack.Screen
+                name="maintenanceReminders"
+                options={{
+                    title: "Maintenance Reminders",
+                }}
+            />
+
+            <Stack.Screen
+                name="maintenanceReminderForm"
+                options={({ route }) => {
+                    const params = route.params as {
+                        reminderId?: string;
+                    };
+
+                    return {
+                        title: params.reminderId
+                            ? "Edit Maintenance Reminder"
+                            : "New Maintenance Reminder",
+                    };
+                }}
+            />
         </Stack>
     )
 }

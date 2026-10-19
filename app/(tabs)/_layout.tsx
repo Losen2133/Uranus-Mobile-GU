@@ -21,7 +21,9 @@ export default function TabLayout() {
     (segments[1] === "sensors" && segments[2] === "[sensorId]") ||
     (segments[1] === "livestock" && segments[2] === "logs") ||
     (segments[1] === "livestock" && segments[2] === "logForm") ||
-    (segments[1] === "profile2");
+    (segments[1] === "profile2") ||
+    (segments[1] === "sensors" && segments[2] === "maintenanceReminders") ||
+    (segments[1] === "sensors" && segments[2] === "maintenanceReminderForm");
 
   function NotificationListener() {
     useNotificationListener();

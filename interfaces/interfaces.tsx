@@ -306,3 +306,17 @@ export interface SensorData {
   is_offline: boolean;
   unit: string;
 }
+
+export interface SensorMaintenanceReminderData {
+  id: number;
+  sensor_id: number;
+  title: string;
+  description: string;
+  scheduled_at: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  added_by: number | null;
+  added_by_name: string;
+  added_by_email: string;
+  created_at: string;
+  updated_at: string;
+}

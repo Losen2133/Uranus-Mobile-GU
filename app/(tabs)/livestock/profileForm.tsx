@@ -52,6 +52,15 @@ export default function LivestockProfileFormPage() {
     const { showToast } = useAppToast();
     const isEditMode = !!toEditProfileId;
     const [fieldMode, setFieldMode] = useState<"manual" | "auto">("manual");
+
+    const temperatureUnitLabel: Record<TempUnit, string> = {
+        celcius: "°C",
+        fahrenheit: "°F",
+        kelvin: "K",
+    };
+
+    const currentTemperatureUnit =
+        temperatureUnitLabel[tempUnit] ?? "°C";
     
     const handleFetchLivestockProfile = useCallback(async () => {
         if (!selectedOrganizationId || !toEditProfileId) {
@@ -513,8 +522,8 @@ export default function LivestockProfileFormPage() {
                                     {<Divider />}
                                     {numberField(
                                         fieldMode,
-                                        "Ideal Minimum Temperature",
-                                        "Please enter a valid temperature",
+                                        `Ideal Minimum Temperature (${currentTemperatureUnit})`,
+                                        `Please enter a valid temperature in ${currentTemperatureUnit}`,
                                         minTemp,
                                         setMinTemp,
                                         isInvalidMinTemp,
@@ -522,8 +531,8 @@ export default function LivestockProfileFormPage() {
                                     )}
                                     {numberField(
                                         fieldMode,
-                                        "Ideal Maximum Temperature",
-                                        "Please enter a valid temperature",
+                                        `Ideal Maximum Temperature (${currentTemperatureUnit})`,
+                                        `Please enter a valid temperature in ${currentTemperatureUnit}`,
                                         maxTemp,
                                         setMaxTemp,
                                         isInvalidMaxTemp,

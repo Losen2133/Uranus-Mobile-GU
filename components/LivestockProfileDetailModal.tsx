@@ -185,13 +185,13 @@ export default function LivestockProfileDetailModal({
                     </ModalBody>
 
                     <ModalFooter className="gap-2">
-                        <Button
+                        {/* <Button
                             variant="outline"
                             onPress={handleClose}
                             isDisabled={loading}
                         >
                             <ButtonText>Close</ButtonText>
-                        </Button>
+                        </Button> */}
 
                         <Button
                             variant="outline"

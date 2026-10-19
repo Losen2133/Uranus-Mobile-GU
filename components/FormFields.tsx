@@ -1,6 +1,6 @@
 import { LivestockProfileData } from "@/interfaces/interfaces"
 import { Picker } from "@react-native-picker/picker"
-import { Camera, Image as ImageIcon, RotateCcw } from "lucide-react-native"
+import { CalendarDaysIcon, Camera, Image as ImageIcon, RotateCcw } from "lucide-react-native"
 import { Dispatch, SetStateAction } from "react"
 import { Box } from "./ui/box"
 import { Button, ButtonIcon, ButtonText } from "./ui/button"
@@ -194,6 +194,36 @@ export const timePicker = (
   );
 };
 
+export const dateTimePicker = (
+    scheduledAt: Date | undefined,
+    scheduledAtSetter: Dispatch<SetStateAction<Date | undefined>>
+) => {
+    return (
+        <Box className="w-full">
+            <VStack space="md">
+                <Text className="font-bold">
+                    Scheduled At
+                </Text>
+
+                <DateTimePicker
+                    value={scheduledAt}
+                    onChange={(selectedDate) => {
+                        scheduledAtSetter(selectedDate);
+                    }}
+                    mode="datetime"
+                    placeholder="Select date and time"
+                    format="YYYY-MM-DD HH:mm"
+                >
+                    <DateTimePickerTrigger>
+                        <DateTimePickerInput />
+                        <DateTimePickerIcon as={CalendarDaysIcon} />
+                    </DateTimePickerTrigger>
+                </DateTimePicker>
+            </VStack>
+        </Box>
+    );
+};
+
 export const imageField = (
     image: string | null,
     isImagePickerOpenSetter: Dispatch<SetStateAction<boolean>>,
@@ -326,6 +356,77 @@ export const logTitleField = (
                     Please fill out this field
                 </FormControlErrorText>
             </FormControlError>
+        </FormControl>
+    )
+}
+
+export const maintenanceReminderTitleField = (
+    maintenanceReminderTitle: string,
+    maintenanceReminderTitleSetter: Dispatch<SetStateAction<string>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Maintenance Reminder Title</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                    type='text'
+                    placeholder='Subject of this log...'
+                    placeholderTextColor={'gray'}
+                    value={maintenanceReminderTitle}
+                    onChangeText={(text) => maintenanceReminderTitleSetter(text)}
+                />
+            </Input>
+            <FormControlError>
+                <FormControlErrorIcon
+                    as={AlertCircleIcon}
+                    className='text-destructive'
+                />
+                <FormControlErrorText className='text-destructive'>
+                    Please fill out this field
+                </FormControlErrorText>
+            </FormControlError>
+        </FormControl>
+    )
+}
+
+export const maintenanceReminderDescriptionField = (
+    maintenanceReminderDescription: string,
+    maintenanceReminderDescriptionSetter: Dispatch<SetStateAction<string>>,
+    isError: boolean
+) => {
+    return (
+        <FormControl
+            isInvalid={isError}
+        >
+            <FormControlLabel>
+                <FormControlLabelText>Description</FormControlLabelText>
+            </FormControlLabel>
+            <Input>
+                <InputField
+                            type="text"
+                            placeholder="What this log is about..."
+                            placeholderTextColor={'gray'}
+                            value={maintenanceReminderDescription}
+                            onChangeText={(text) => maintenanceReminderDescriptionSetter(text)}
+                            numberOfLines={4}
+                            className="h-25 pt-3"
+                            style={{ textAlignVertical: 'top' }}
+                        />
+                </Input>
+                <FormControlError>
+                    <FormControlErrorIcon
+                        as={AlertCircleIcon}
+                        className='text-destructive'
+                    />
+                    <FormControlErrorText className='text-destructive'>
+                        Please fill out this field
+                    </FormControlErrorText>
+                </FormControlError>
         </FormControl>
     )
 }
@@ -631,7 +732,7 @@ export const concernSeverityPickerField = (
         <Box>
             <VStack space="md">
                 <Text className="font-bold">
-                    Livestock Profile
+                    Concern Severity
                 </Text>
 
                 <Box className="border border-outline-300 border-white rounded-md h-12 justify-center px-3">
@@ -655,6 +756,46 @@ export const concernSeverityPickerField = (
                         <Picker.Item label="Moderate" value="moderate" />
                         <Picker.Item label="High" value="high" />
                         <Picker.Item label="Critical" value="critical" />
+                    </Picker>
+                </Box>
+            </VStack>
+        </Box>
+        
+        
+    )
+}
+
+export const maintenanceReminderStatusField = (
+    maintenanceRemidnerStatus: 'pending' | 'completed' | 'cancelled' | undefined,
+    maintenanceReminderStatusSetter: Dispatch<SetStateAction<'pending' | 'completed' | 'cancelled' | undefined>>
+) => {
+    return (
+        <Box>
+            <VStack space="md">
+                <Text className="font-bold">
+                    Maintenance Status
+                </Text>
+
+                <Box className="border border-outline-300 border-white rounded-md h-12 justify-center px-3">
+                    <Picker
+                        selectedValue={maintenanceRemidnerStatus ?? ""}
+                        onValueChange={(value) => {
+                            maintenanceReminderStatusSetter(
+                                value === ""
+                                    ? undefined
+                                    : value as 'pending' | 'completed' | 'cancelled'
+                            );
+                        }}
+                        dropdownIconColor="white"
+                        style={{
+                            color: "white",
+                            marginHorizontal: -10,
+                        }}
+                    >
+                        <Picker.Item label="Select Severity" value="" />
+                        <Picker.Item label="Pending" value="pending" />
+                        <Picker.Item label="Completed" value="completed" />
+                        <Picker.Item label="Cancelled" value="cancelled" />
                     </Picker>
                 </Box>
             </VStack>

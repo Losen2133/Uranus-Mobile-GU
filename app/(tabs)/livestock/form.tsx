@@ -59,6 +59,15 @@ export default function LivestockFormPage() {
     const [isInvalidNotificationTime, setIsInvalidNotificationTime] = useState(false);
     const router = useRouter();
     const { showToast } = useAppToast();
+
+    const temperatureUnitLabel: Record<TempUnit, string> = {
+        celcius: "°C",
+        fahrenheit: "°F",
+        kelvin: "K",
+    };
+
+    const currentTemperatureUnit =
+        temperatureUnitLabel[tempUnit] ?? "°C";
     
     const handleFetchLivestockProfiles = async () => {
         if (!selectedOrganizationId) {
@@ -612,8 +621,8 @@ export default function LivestockFormPage() {
                                         {<Divider />}
                                         {numberField(
                                             "manual",
-                                            "Ideal Minimum Temperature",
-                                            "Please enter a valid temperature",
+                                            `Ideal Minimum Temperature (${currentTemperatureUnit})`,
+                                            `Please enter a valid temperature in ${currentTemperatureUnit}`,
                                             minTemp,
                                             setMinTemp,
                                             isInvalidMinTemp,
@@ -621,8 +630,8 @@ export default function LivestockFormPage() {
 
                                         {numberField(
                                             "manual",
-                                            "Ideal Maximum Temperature",
-                                            "Please enter a valid temperature",
+                                            `Ideal Maximum Temperature (${currentTemperatureUnit})`,
+                                            `Please enter a valid temperature in ${currentTemperatureUnit}`,
                                             maxTemp,
                                             setMaxTemp,
                                             isInvalidMaxTemp,

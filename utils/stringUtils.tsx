@@ -27,6 +27,58 @@ export function formatDate(
     });
 }
 
+export type DateTimeFormat = 'short' | 'numeric' | '12-hour' | '24-hour';
+
+export function formatDateTime(
+    dateString?: string | null,
+    mode: DateTimeFormat = 'short'
+): string {
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) return '';
+
+    if (mode === 'numeric') {
+        return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} ${date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        })}`;
+    }
+
+    if (mode === '12-hour') {
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
+    }
+
+    if (mode === '24-hour') {
+        return date.toLocaleString('en-GB', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        });
+    }
+
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+}
+
 export function getDaysLeft(
     createdAt?: string | null,
     totalDays?: number

@@ -1,4 +1,4 @@
-import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SelectedOrgDashboardData, SensorData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
+import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SelectedOrgDashboardData, SensorData, SensorMaintenanceReminderData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
@@ -1195,7 +1195,7 @@ export async function fetchSensorChartLink(
         }
 
         const sensorChartLinkJson = await sensorChartLinkResponse.json();
-        console.log("Sensor Chart Link JSON:", sensorChartLinkJson);
+        // console.log("Sensor Chart Link JSON:", sensorChartLinkJson);
         chartLinkSetter(sensorChartLinkJson.url)
     } catch (error: any) {
         if(errorSetter) errorSetter(error.message || 'An error occurred');
@@ -1879,3 +1879,252 @@ export async function deleteAccount(
     return data;
 }
 
+export async function fetchSensorMaintenanceReminderData(
+    selectedOrganizationId: number,
+    sensorId: number,
+    maintenanceReminderSetter: Dispatch<SetStateAction<SensorMaintenanceReminderData[]>>
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/maintenance-reminders`, {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        }
+    });
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error('Failed to load secure data.');
+    }
+
+    const json = await response.json();
+
+    maintenanceReminderSetter(json.data);
+}
+
+// export async function fetchIndividualSensorMaintenanceReminder(
+//     selectedOrganizationId: number,
+//     sensorId: number,
+//     reminderId: number,
+//     maintenanceReminderSetter: Dispatch<SetStateAction<SensorMaintenanceReminderData | undefined>>
+// ) {
+//     const token = await SecureStore.getItemAsync('userToken');
+
+//     if (!token) {
+//         throw new Error('No authorization token found. Please log in.');
+//     }
+
+//     const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/maintenance-reminders/${reminderId}`, {
+//         method: 'GET',
+//         headers: {
+//             Accept: 'application/json',
+//             'Content-Type': 'application/json',
+//             'Authorization': `Bearer ${token}`,
+//         }
+//     });
+
+//     if (response.status === 401) {
+//         throw new Error('Session expired. Please log in again.');
+//     }
+
+//     if (!response.ok) {
+//         throw new Error('Failed to load secure data.');
+//     }
+
+//     const json = await response.json();
+
+//     console.log(json.data);
+
+//     maintenanceReminderSetter(json.data);
+// }
+
+
+export async function fetchIndividualSensorMaintenanceReminder(
+    selectedOrganizationId: number,
+    sensorId: number,
+    reminderId: number,
+    maintenanceReminderSetter: Dispatch<
+        SetStateAction<SensorMaintenanceReminderData | undefined>
+    >
+) {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error("No authorization token found. Please log in.");
+    }
+
+    const url =
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}` +
+        `/sensors/${sensorId}/maintenance-reminders/${reminderId}`;
+
+    console.log("Fetching maintenance reminder:", url);
+
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    const responseText = await response.text();
+
+    let json: any;
+
+    try {
+        json = JSON.parse(responseText);
+    } catch {
+        console.error("Non-JSON API response:", responseText);
+        throw new Error(
+            `Invalid API response (HTTP ${response.status}).`
+        );
+    }
+
+    if (!response.ok) {
+        console.error("Maintenance reminder API error:", {
+            status: response.status,
+            body: json,
+        });
+
+        throw new Error(
+            json.message ??
+                `Failed to load maintenance reminder (HTTP ${response.status}).`
+        );
+    }
+
+    if (!json.data) {
+        console.error("Unexpected API response:", json);
+        throw new Error("Maintenance reminder data is missing.");
+    }
+
+    console.log("Maintenance reminder data:", json.data);
+
+    maintenanceReminderSetter(json.data);
+}
+
+
+export async function createSensorMaintenanceReminder(
+    selectedOrganizationId: number,
+    sensorId: number,
+    title: string,
+    description: string,
+    scheduledAt: Date | undefined
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/maintenance-reminders`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            scheduled_at: scheduledAt?.toISOString(),
+        }),
+    });
+
+    const data = await response.json();
+
+    console.log(data);
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to create maintenance reminder.');
+    }
+
+    return data;
+}
+
+export async function updateSensorMaintenanceReminder(
+    selectedOrganizationId: number,
+    sensorId: number,
+    reminderId: number,
+    title: string,
+    description: string,
+    scheduledAt: Date | undefined,
+    status: 'pending' | 'completed' | 'cancelled'
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/maintenance-reminders/${reminderId}`, {
+        method: 'PATCH',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            title,
+            description,
+            scheduled_at: scheduledAt?.toISOString(),
+            status
+        }),
+    });
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to update maintenance reminder.');
+    }
+
+    return data;
+}
+
+export async function deleteSensorMaintenanceReminder(
+    selectedOrganizationId: number | null,
+    sensorId: number,
+    reminderId: number
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/maintenance-reminders/${reminderId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error('Failed to delete maintenance reminder.');
+    }
+
+    return data;
+}

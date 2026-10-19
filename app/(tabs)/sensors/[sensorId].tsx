@@ -1,11 +1,13 @@
 import LoaderDisplay from "@/components/LoaderDisplay";
 import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useOrganization } from "@/hooks/useOrganization";
 import { fetchSensorChartLink } from "@/utils/apiFetch";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { useCallback, useEffect, useState } from "react";
+import { ClipboardClock } from "lucide-react-native";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
     View,
     useWindowDimensions
@@ -34,6 +36,29 @@ export default function SensorReadingPage() {
     const [isWebViewLoading, setIsWebViewLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [chartLink, setChartLink] = useState<string>();
+    const navigation = useNavigation();
+    const router = useRouter();
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => 
+                selectedSensorId && selectedOrganizationId ? (
+                    <>
+                        <Button
+                            className="h-8 w-8 rounded-full p-0 mr-2"
+                            onPress={() => router.push({
+                                pathname: '/sensors/maintenanceReminders',
+                                params: {
+                                    sensorId: String(sensorId)
+                                }
+                            })}
+                        >
+                            <ButtonIcon as={ClipboardClock} className="h-5 w-5" />
+                        </Button>
+                    </>
+                ) : null
+        })
+    })
 
     useFocusEffect(
         useCallback(() => {
@@ -61,7 +86,7 @@ export default function SensorReadingPage() {
 
     useEffect(() => {
         if (chartLink) {
-            console.log("Chart link:", chartLink);
+            // console.log("Chart link:", chartLink);
         }
     }, [chartLink]);
 

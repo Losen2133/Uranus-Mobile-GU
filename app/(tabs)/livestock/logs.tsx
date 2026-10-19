@@ -209,12 +209,12 @@ export default function LivestockLogsPage() {
                             <InputIcon as={SearchIcon}/>
                         </InputSlot>
                         <InputField
-                                type="text"
-                                placeholder="Search..."
-                                placeholderTextColor={'gray'}
-                                value={query}
-                                onChangeText={(text) => setQuery(text)}
-                            />
+                            type="text"
+                            placeholder="Search..."
+                            placeholderTextColor={'gray'}
+                            value={query}
+                            onChangeText={(text) => setQuery(text)}
+                        />
                     </Input>
                 </Box>
                 <Box className="border border-outline-300 border-white h-8 rounded-md justify-center px-3">
