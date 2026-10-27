@@ -20,9 +20,9 @@ import { useFam } from "@/hooks/useFamOpacity";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserInfo } from "@/hooks/useUserInfo";
 import { OrganizationMember, Role } from "@/interfaces/interfaces";
-import { addMember, fetchMemberData, updateMemberRole, updateMemberStatus } from "@/utils/apiFetch";
+import { addMember, fetchMemberData, transferOrgOwnership, updateMemberRole, updateMemberStatus } from "@/utils/apiFetch";
 import { useFocusEffect, useNavigation } from "expo-router";
-import { EllipsisVertical, Power, RefreshCcw, UserRoundPlus } from "lucide-react-native";
+import { Crown, EllipsisVertical, Power, RefreshCcw, UserRoundPlus } from "lucide-react-native";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, SectionList, StyleSheet } from "react-native";
 
@@ -44,6 +44,8 @@ export default function MembersScreen() {
     const { showToast } = useAppToast();
     const { famOpacity, setFamOpacity } = useFam();
     const user = members.find(member => member.id === fetchedUserInfo?.id)
+    const [transferringOwnership, setTransferringOwnership] = useState(false);
+    const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -215,6 +217,39 @@ export default function MembersScreen() {
         }
     };
 
+    const handleTransferOwnership = async () => {
+        if (!selectedOrganizationId) {
+            return;
+        }
+
+        try {
+            setTransferringOwnership(true);
+
+            await transferOrgOwnership(
+                selectedOrganizationId,
+                selectedMember?.id
+            )
+
+            setIsTransferringOwnership(false);
+            setTransferringOwnership(false);
+
+            showToast({
+                action: "success",
+                title: "Ownership Transferred Updated",
+                description: "Ownership transfer was successfull",
+            });
+
+            await handleFetchMembers();
+
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Failed to Transfer Ownership",
+                description: "Failed to transfer ownership, please try again later.",
+            });
+        }
+    }
+
     useFocusEffect(
         useCallback(() => {
             const fetchData = async () => {
@@ -359,72 +394,93 @@ export default function MembersScreen() {
                                                         
                                                         
                                                     </Box>
-                                                    <Box className="flex-1 justify-center items-end">
-                                                        <HStack>
-                                                            <Menu
+                                                    {(user?.role_id === 1 || user?.role_id === 2) && (
+                                                        <Box className="flex-1 justify-center items-end">
+                                                            <HStack>
+                                                                <Menu
 
-                                                                className="w-fit"
-                                                                placement="bottom right"
-                                                                closeOnSelect
-                                                                disabledKeys={
-                                                                    user?.id === item.id ||
-                                                                    (
-                                                                        user?.role_id === 2 &&
-                                                                        (item.role_id === 1 || item.role_id === 2)
-                                                                    )
-                                                                        ? ["Change Role", "Deactivate"]
-                                                                        : []
-                                                                }
-                                                                trigger={(triggerProps) => (
-                                                                    <Pressable
-                                                                        {...triggerProps}
-                                                                        onPress={(e) => {
-                                                                            setSelectedMember(item);
-                                                                            triggerProps.onPress?.(e); // Open the menu
+                                                                    className="w-fit"
+                                                                    placement="bottom right"
+                                                                    closeOnSelect
+                                                                    disabledKeys={
+                                                                        [
+                                                                            ...(user?.id === item.id ||
+                                                                            (
+                                                                                user?.role_id === 2 &&
+                                                                                (item.role_id === 1 || item.role_id === 2)
+                                                                            )
+                                                                                ? ["Change Role", "Deactivate"]
+                                                                                : []),
+
+                                                                            ...(user?.role_id !== 1 || item.role_id === 1 || !item.active
+                                                                                ? ["Transfer Ownership"]
+                                                                                : []),
+                                                                        ]
+                                                                    }
+                                                                    trigger={(triggerProps) => (
+                                                                        <Pressable
+                                                                            {...triggerProps}
+                                                                            onPress={(e) => {
+                                                                                setSelectedMember(item);
+                                                                                triggerProps.onPress?.(e); // Open the menu
+                                                                            }}
+                                                                        >
+                                                                            <Icon as={EllipsisVertical} className="h-7 w-7" />
+                                                                        </Pressable>
+                                                                    )}
+                                                                >
+                                                                    {user?.role_id === 1 && (
+                                                                        <MenuItem
+                                                                            key="Transfer Ownership"
+                                                                            textValue="Transfer Ownership"
+                                                                            onPress={() => {
+                                                                                setSelectedMember(item);
+                                                                                setIsTransferringOwnership(true);
+                                                                            }}
+                                                                        >
+                                                                            <Icon as={Crown} size="sm" className="mr-2" />
+                                                                            <MenuItemLabel>Transfer Ownership</MenuItemLabel>
+                                                                        </MenuItem>
+                                                                    )}
+                                                                    <MenuItem
+                                                                        key="Change Role"
+                                                                        textValue="Change Role"
+                                                                        onPress={() => {
+                                                                            setSelectedMember(item)
+                                                                            setIsChangingRole(true)
                                                                         }}
                                                                     >
-                                                                        <Icon as={EllipsisVertical} className="h-7 w-7" />
-                                                                    </Pressable>
-                                                                )}
-                                                            >
-                                                                <MenuItem
-                                                                    key="Change Role"
-                                                                    textValue="Change Role"
-                                                                    onPress={() => {
-                                                                        setSelectedMember(item)
-                                                                        setIsChangingRole(true)
-                                                                    }}
-                                                                >
-                                                                    <Icon as={RefreshCcw} size="sm" className="mr-2" />
-                                                                    <MenuItemLabel>Change Role</MenuItemLabel>
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    key="Deactivate"
-                                                                    textValue="Deactivate"
-                                                                    onPress={() => {
-                                                                        setIsChangingStatus(true)}
-                                                                    }
-                                                                >
-                                                                    {item.active ? (
-                                                                        <>
-                                                                            
-                                                                            <Icon as={Power} color="red" size="sm" className="mr-2" />
-                                                                            <MenuItemLabel className="text-red-500">
-                                                                                Deactivate
-                                                                            </MenuItemLabel>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Icon as={Power} color="green" size="sm" className="mr-2" />
-                                                                            <MenuItemLabel className="text-green-500">
-                                                                                Activate
-                                                                            </MenuItemLabel>
-                                                                        </>
-                                                                    )}
-                                                                </MenuItem>
-                                                            </Menu>
-                                                        </HStack>
-                                                    </Box>
+                                                                        <Icon as={RefreshCcw} size="sm" className="mr-2" />
+                                                                        <MenuItemLabel>Change Role</MenuItemLabel>
+                                                                    </MenuItem>
+                                                                    <MenuItem
+                                                                        key="Deactivate"
+                                                                        textValue="Deactivate"
+                                                                        onPress={() => {
+                                                                            setIsChangingStatus(true)}
+                                                                        }
+                                                                    >
+                                                                        {item.active ? (
+                                                                            <>
+                                                                                
+                                                                                <Icon as={Power} color="red" size="sm" className="mr-2" />
+                                                                                <MenuItemLabel className="text-red-500">
+                                                                                    Deactivate
+                                                                                </MenuItemLabel>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Icon as={Power} color="green" size="sm" className="mr-2" />
+                                                                                <MenuItemLabel className="text-green-500">
+                                                                                    Activate
+                                                                                </MenuItemLabel>
+                                                                            </>
+                                                                        )}
+                                                                    </MenuItem>
+                                                                </Menu>
+                                                            </HStack>
+                                                        </Box>
+                                                    )}
                                                 </HStack>
                                             </VStack>
                                         </Pressable>
@@ -445,6 +501,42 @@ export default function MembersScreen() {
                     user={user}
                     onRoleUpdated={handleUpdateMemberRole}
                 />
+                <AlertDialog
+                    isOpen={isTransferringOwnership}
+                    onClose={() => setIsTransferringOwnership(false)}
+                >
+                    <AlertDialogBackdrop />
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <Heading className="text-foreground font-semibold text-lg">
+                                Are you sure you want to transfer ownership to{" "}
+                                {selectedMember?.name}?
+                            </Heading>
+                        </AlertDialogHeader>
+                        <AlertDialogBody className="mt-3 mb-4">
+                            <Text className="text-sm text-muted-foreground">
+                                Confirming this will transfer ownership to member {selectedMember?.name}. This action cannot be undone.
+                            </Text>
+                        </AlertDialogBody>
+                        <AlertDialogFooter>
+                            <Button variant="outline" onPress={() => setIsTransferringOwnership(false)}>
+                                <ButtonText>Cancel</ButtonText>
+                            </Button>
+                            <Button
+                                onPress={() => {
+                                    if (!selectedMember) {
+                                        return;
+                                    }
+
+                                    handleTransferOwnership();
+                                }}
+                                isDisabled={transferringOwnership}
+                            >
+                                <ButtonText>Confirm</ButtonText>
+                            </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
                 <AlertDialog
                     isOpen={isChangingStatus}
                     onClose={() => setIsChangingStatus(false)}

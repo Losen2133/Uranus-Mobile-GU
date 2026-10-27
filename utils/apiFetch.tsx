@@ -2174,3 +2174,139 @@ export async function updateLivestockImage(
 
     return json.data;
 }
+
+// export async function transferOrgOwnership(
+//     selectedOrganizationId: number,
+//     targetUserId: number | undefined
+// ) {
+//     const token = await SecureStore.getItemAsync("userToken");
+
+//     if (!token) {
+//         throw new Error("No authorization token found. Please log in.");
+//     }
+
+//     const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/transfer-ownership`, {
+//         method: "PUT",
+//         headers: {
+//             Accept: "application/json",
+//             Authorization: `Bearer ${token}`,
+//         },
+//         body: JSON.stringify({
+//             user_id: targetUserId
+//         })
+//     })
+
+//     const data = await response.json();
+
+//     if (response.status === 401) {
+//         throw new Error('Session expired. Please log in again.');
+//     }
+
+//     if (!response.ok) {
+//         throw new Error('Failed to transfer ownership');
+//     }
+
+//     return data;
+// }
+
+export async function transferOrgOwnership(
+    selectedOrganizationId: number,
+    targetUserId: number | undefined
+) {
+    console.log("========== TRANSFER ORGANIZATION OWNERSHIP ==========");
+    console.log("Organization ID:", selectedOrganizationId);
+    console.log("Target User ID:", targetUserId);
+
+    try {
+        const token = await SecureStore.getItemAsync("userToken");
+
+        console.log("Authorization token exists:", !!token);
+
+        if (!token) {
+            throw new Error("No authorization token found. Please log in.");
+        }
+
+        if (targetUserId === undefined) {
+            throw new Error("Target user ID is undefined.");
+        }
+
+        const url =
+            `${URANUS_URL}/api/organizations/${selectedOrganizationId}/transfer-ownership`;
+
+        console.log("Request URL:", url);
+        console.log("Request Method: PUT");
+        console.log("Request Body:", {
+            user_id: targetUserId,
+        });
+
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                user_id: targetUserId,
+            }),
+        });
+
+        console.log("========== BACKEND RESPONSE ==========");
+        console.log("HTTP Status:", response.status);
+        console.log("HTTP Status Text:", response.statusText);
+        console.log("Response URL:", response.url);
+        console.log("Response OK:", response.ok);
+
+        // Read the response body as text first so non-JSON errors
+        // (such as HTML error pages) can also be logged.
+        const responseText = await response.text();
+
+        console.log("Raw Backend Response:", responseText);
+
+        let data: any;
+
+        try {
+            data = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+            console.error("Failed to parse backend response as JSON:", parseError);
+            console.error("Backend returned a non-JSON response.");
+        }
+
+        console.log("Parsed Backend Response:", data);
+
+        if (response.status === 401) {
+            throw new Error(
+                data?.message || "Session expired. Please log in again."
+            );
+        }
+
+        if (!response.ok) {
+            console.error("Ownership transfer failed:", {
+                status: response.status,
+                statusText: response.statusText,
+                response: data ?? responseText,
+            });
+
+            throw new Error(
+                data?.message ||
+                `Failed to transfer ownership. HTTP ${response.status}`
+            );
+        }
+
+        console.log("Ownership transfer successful:", data);
+        console.log("====================================================");
+
+        return data;
+    } catch (error) {
+        console.error("========== OWNERSHIP TRANSFER ERROR ==========");
+        console.error("Error:", error);
+
+        if (error instanceof Error) {
+            console.error("Error Message:", error.message);
+        }
+
+        console.error("================================================");
+
+        throw error;
+    }
+}
