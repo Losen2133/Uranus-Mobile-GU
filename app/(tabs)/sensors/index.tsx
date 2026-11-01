@@ -262,37 +262,33 @@ export default function SensorsScreen() {
                                 <Pressable
                                     style={({ pressed }) => [
                                         styles.item,
+                                        { paddingLeft: 12 },
                                         pressed && styles.pressed,
                                     ]}
                                     onPress={() => {
                                         router.push({
                                             pathname: "/(tabs)/sensors/[sensorId]",
-                                            params: {
-                                                sensorId: item.id.toString(),
-                                            },
+                                            params: { sensorId: item.id.toString() },
                                         });
                                     }}
                                 >
-                                    <HStack space="md" className="items-center">
+                                    <HStack space="md" className="items-center justify-between">
                                         <Box className="flex-1">
                                             <Text className="font-bold text-lg">
                                                 {item.name}
                                             </Text>
-
-                                            {/* <Text className="text-sm text-foreground/70">
-                                                Purpose:{" "}
-                                                {PURPOSE_LABELS[
-                                                    (item.purpose ?? "").toLowerCase() as Exclude<
-                                                        SensorPurpose,
-                                                        "all"
-                                                    >
-                                                ] ?? item.purpose}
-                                            </Text> */}
-
                                             <Text className="text-sm text-foreground/70">
                                                 Device ID: {item.device_id}
                                             </Text>
                                         </Box>
+
+                                        {item.maintenance_reminders_count > 0 && (
+                                            <Center className="w-6 h-6 rounded-full bg-red-500">
+                                                <Text className="text-white text-xs font-bold">
+                                                    {item.maintenance_reminders_count}
+                                                </Text>
+                                            </Center>
+                                        )}
                                     </HStack>
                                 </Pressable>
                             )}

@@ -315,6 +315,7 @@ export interface SensorData {
   device_model: string;
   is_offline: boolean;
   unit: string;
+  maintenance_reminders_count: number;
 }
 
 export interface SensorMaintenanceReminderData {
