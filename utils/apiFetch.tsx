@@ -2101,6 +2101,46 @@ export async function updateSensorMaintenanceReminder(
     return data;
 }
 
+export async function updateSensorMaintenanceReminderStatus(
+    selectedOrganizationId: number,
+    sensorId: number,
+    reminderId: number,
+    status: 'pending' | 'completed' | 'cancelled'
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(
+        URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/maintenance-reminders/${reminderId}`,
+        {
+            method: 'PATCH',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                status,
+            }),
+        }
+    );
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to update maintenance reminder status.');
+    }
+
+    return data;
+}
+
 export async function deleteSensorMaintenanceReminder(
     selectedOrganizationId: number | null,
     sensorId: number,

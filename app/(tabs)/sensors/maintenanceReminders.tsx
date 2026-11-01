@@ -290,7 +290,7 @@ export default function SensorMaintenanceRemindersScreen() {
                 }
             >
                 <FabIcon as={AddIcon} />
-                <FabLabel>Create Log</FabLabel>
+                <FabLabel>Create Reminder</FabLabel>
             </Fab>
             <MaintenanceReminderDetailModal
                 isOpen={reminderDetail}
