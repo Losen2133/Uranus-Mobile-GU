@@ -1,4 +1,5 @@
 import useAppToast from "@/components/AppToast";
+import EmptyState from "@/components/EmptyState";
 import LivestockProfileDetailModal from "@/components/LivestockProfileDetailModal";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
@@ -226,9 +227,10 @@ export default function LivestockProfilesScreen() {
                 {loading ? (
                     <SkeletonLoading />
                 ) : isProfileEmpty && !loading ? (
-                    <Center className="flex-1">
-                        <Text>There are no profiles available</Text>
-                    </Center>
+                    <EmptyState
+                        message="There are no profiles available."
+                        onRefresh={handleRefresh}
+                    />
                 ) : isFilteredEmpty ? (
                     <Center className="flex-1">
                         <Text>No profiles match your search or filter.</Text>
@@ -277,52 +279,6 @@ export default function LivestockProfilesScreen() {
                                             {item.description}
                                         </Text>
                                     </Box>
-                                    {/* <Menu
-                                        className="w-fit"
-                                        placement="bottom right"
-                                        closeOnSelect
-                                        trigger={({ ...triggerProps }) => {
-                                            return (
-                                                <Pressable className="items-center justify-center"
-                                                    { ...triggerProps }
-                                                >
-                                                    <Icon as={EllipsisVertical} className="h-7 w-7" />
-                                                </Pressable>
-                                            )
-                                        }}
-                                    >
-                                        <MenuItem
-                                            key="Edit"
-                                            textValue="Edit"
-                                            onPress={() => router.push({
-                                                pathname: "/(tabs)/livestock/profileForm",
-                                                params: {
-                                                    selectedProfileId: item.id
-                                                }
-                                            })}
-                                        >
-                                            <Icon as={SquarePen} size="sm" className="mr-2" />
-                                            <MenuItemLabel>Edit</MenuItemLabel>
-                                        </MenuItem>
-                                        <MenuItem
-                                            key="Delete"
-                                            textValue="Delete"
-                                            onPress={() => {
-                                                setSelectedProfile(item);
-                                                setIsProfileDetailOpen(true);
-                                            }}
-                                        >
-                                            <Icon
-                                                as={Trash2}
-                                                color="red"
-                                                size="sm"
-                                                className="mr-2"
-                                            />
-                                            <MenuItemLabel className="text-red-500">
-                                                Delete
-                                            </MenuItemLabel>
-                                        </MenuItem>
-                                    </Menu> */}
                                 </HStack>
                                 
                             </Pressable>

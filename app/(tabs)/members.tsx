@@ -1,5 +1,6 @@
 import AddMemberModal from "@/components/AddMemberModal";
 import useAppToast from "@/components/AppToast";
+import EmptyState from "@/components/EmptyState";
 import MemberChangeRoleModal from "@/components/MemberChangeRoleModal";
 import MemberDetailModal from "@/components/MemberDetailModal";
 import SelectOrgDisplay from "@/components/SelectOrgDisplay";
@@ -334,9 +335,10 @@ export default function MembersScreen() {
                         {loading ? (
                             <SkeletonLoading />
                         ) : isMembersEmpty && !loading? (
-                            <Center className="flex-1">
-                                <Text>There are no members available</Text>
-                            </Center>
+                            <EmptyState
+                                message="There are no members available."
+                                onRefresh={handleRefresh}
+                            />
                         ) : isFilteredEmpty ? (
                             <Center className="flex-1">
                                 <Text>No members match your search or filter.</Text>

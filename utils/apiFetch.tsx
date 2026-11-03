@@ -2350,3 +2350,71 @@ export async function transferOrgOwnership(
         throw error;
     }
 }
+
+export async function updateSensor(
+    selectedOrganizationId: number,
+    sensorId: number,
+    sensorName: string
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}`, {
+        method: 'PATCH',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            name: sensorName,
+        }),
+    });
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to update sensor.');
+    }
+
+    return data;
+}
+
+export async function deleteSensor(
+    selectedOrganizationId: number,
+    sensorId: number
+) {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors/${sensorId}`, {
+        method: 'DELETE',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to delete sensor.');
+    }
+
+    return data;
+}

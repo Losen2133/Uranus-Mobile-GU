@@ -1,4 +1,5 @@
 import useAppToast from "@/components/AppToast";
+import EmptyState from "@/components/EmptyState";
 import SelectOrgDisplay from "@/components/SelectOrgDisplay";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { Box } from "@/components/ui/box";
@@ -213,9 +214,10 @@ export default function LivestockScreen() {
                         {loading ? (
                             <SkeletonLoading />
                         ) : isLivestocksEmpty && !loading ? (
-                            <Center className="flex-1">
-                                <Text>There are no livestocks available</Text>
-                            </Center>
+                            <EmptyState
+                                message="There are no livestocks available."
+                                onRefresh={handleRefresh}
+                            />
                         ) : isFilteredEmpty ? (
                             <Center className="flex-1">
                                 <Text>No livestocks match your search or filter.</Text>

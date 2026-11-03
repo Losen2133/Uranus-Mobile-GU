@@ -1,4 +1,5 @@
 import useAppToast from "@/components/AppToast";
+import EmptyState from "@/components/EmptyState";
 import OrgModalAction from "@/components/OrgModalAction";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import {
@@ -313,17 +314,17 @@ export default function OrganizationsScreen() {
                     {loading ? (
                         <SkeletonLoading />
                     ) : isOrganizationsEmpty && !loading ? (
-                        <Center className="flex-1">
-                            <Text>
-                                There are no organizations available
-                            </Text>
-                        </Center>
+                        <EmptyState
+                            message="There are no organizations available."
+                            onRefresh={handleRefresh}
+                        />
                     ) : isFilteredEmpty ? (
                         <Center className="flex-1">
                             <Text>
                                 No organizations match your search or filter.
                             </Text>
                         </Center>
+                        
                     ) : (
                         <SectionList
                             sections={sections}

@@ -1,5 +1,6 @@
 import useAppToast from "@/components/AppToast";
 import ConcernDetailModal from "@/components/ConcernDetailModal";
+import EmptyState from "@/components/EmptyState";
 import LogDetailModal from "@/components/LogDetailModal";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { Box } from "@/components/ui/box";
@@ -279,9 +280,10 @@ export default function LivestockLogsPage() {
                 {loading ? (
                     <SkeletonLoading />
                 ) : isLogsEmpty && !loading ? (
-                    <Center className="flex-1">
-                        <Text>There are no logs available</Text>
-                    </Center>
+                    <EmptyState
+                        message="There are no logs available."
+                        onRefresh={handleRefresh}
+                    />
                 ) : isFilteredEmpty ? (
                     <Center className="flex-1">
                         <Text>No logs match your search or filter.</Text>
