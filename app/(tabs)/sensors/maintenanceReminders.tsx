@@ -1,4 +1,5 @@
 import useAppToast from "@/components/AppToast";
+import EmptyState from "@/components/EmptyState";
 import MaintenanceReminderDetailModal from "@/components/MaintenanceReminderDetailModal";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { Box } from "@/components/ui/box";
@@ -207,9 +208,10 @@ export default function SensorMaintenanceRemindersScreen() {
                 {loading ? (
                     <SkeletonLoading />
                 ) : isMaintenanceRemindersEmpty && !loading ? (
-                    <Center className="flex-1">
-                        <Text className="text-center">There are no maintenance reminders available</Text>
-                    </Center>
+                    <EmptyState
+                        message="There are no maintenance reminders available."
+                        onRefresh={handleRefresh}
+                    />
                 ) : isFilteredMaintenanceRemindersEmpty ? (
                     <Center className="flex-1">
                         <Text className="text-center">No maintenance reminders match your search or filter.</Text>
