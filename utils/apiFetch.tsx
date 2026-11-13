@@ -1483,22 +1483,31 @@ export async function fetchLivestockLogData(
     livestockLogsSetter(data.data);
 }
 
+
 export async function resolveConcernLog(
     livestockId: number,
     logId: number,
     actionTaken: string
 ) {
-    const token = await SecureStore.getItemAsync("userToken");
+    try {
+        const token = await SecureStore.getItemAsync("userToken");
 
-    if (!token) {
-        throw new Error(
-            "No authorization token found. Please log in."
-        );
-    }
+        if (!token) {
+            throw new Error(
+                "No authorization token found. Please log in."
+            );
+        }
 
-    const response = await fetch(
-        URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`,
-        {
+        const url = URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`;
+
+        console.log("[resolveConcernLog] Sending request:", {
+            url,
+            livestockId,
+            logId,
+            actionTaken,
+        });
+
+        const response = await fetch(url, {
             method: "PATCH",
             headers: {
                 Accept: "application/json",
@@ -1510,25 +1519,103 @@ export async function resolveConcernLog(
                     action_taken: actionTaken,
                 },
             }),
+        });
+
+        const responseText = await response.text();
+
+        let data;
+
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+            console.error(
+                "[resolveConcernLog] Invalid JSON response:",
+                responseText
+            );
+            throw new Error("Server returned an invalid response.");
         }
-    );
 
-    const data = await response.json();
+        console.log("[resolveConcernLog] Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            data,
+        });
 
-    if (response.status === 401) {
-        throw new Error(
-            "Session expired. Please log in again."
-        );
+        if (response.status === 401) {
+            throw new Error(
+                "Session expired. Please log in again."
+            );
+        }
+
+        if (!response.ok) {
+            console.error("[resolveConcernLog] API request failed:", {
+                status: response.status,
+                data,
+            });
+
+            throw new Error(
+                data.message ?? "Failed to resolve concern"
+            );
+        }
+
+        console.log("[resolveConcernLog] Successfully resolved concern.");
+
+        return data;
+
+    } catch (error) {
+        console.error("[resolveConcernLog] Error:", error);
+        throw error;
     }
-
-    if (!response.ok) {
-        throw new Error(
-            data.message ?? "Failed to resolve concern"
-        );
-    }
-
-    return data;
 }
+
+
+// export async function resolveConcernLog(
+//     livestockId: number,
+//     logId: number,
+//     actionTaken: string
+// ) {
+//     const token = await SecureStore.getItemAsync("userToken");
+
+//     if (!token) {
+//         throw new Error(
+//             "No authorization token found. Please log in."
+//         );
+//     }
+
+//     const response = await fetch(
+//         URANUS_URL + `/api/livestocks/${livestockId}/logs/${logId}`,
+//         {
+//             method: "PATCH",
+//             headers: {
+//                 Accept: "application/json",
+//                 "Content-Type": "application/json",
+//                 Authorization: `Bearer ${token}`,
+//             },
+//             body: JSON.stringify({
+//                 data: {
+//                     action_taken: actionTaken,
+//                 },
+//             }),
+//         }
+//     );
+
+//     const data = await response.json();
+
+//     if (response.status === 401) {
+//         throw new Error(
+//             "Session expired. Please log in again."
+//         );
+//     }
+
+//     if (!response.ok) {
+//         throw new Error(
+//             data.message ?? "Failed to resolve concern"
+//         );
+//     }
+
+//     return data;
+// }
 
 type BaseLivestockLogParams = {
     selectedLivestockId: number;
