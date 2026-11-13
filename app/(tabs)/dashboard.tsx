@@ -1,4 +1,5 @@
 import useAppToast from '@/components/AppToast';
+import AnalyticsBoard from '@/components/AnalyticsBoard';
 import SelectOrgDisplay from '@/components/SelectOrgDisplay';
 import SkeletonLoading from '@/components/SkeletonLoading';
 import { Accordion, AccordionContent, AccordionHeader, AccordionIcon, AccordionItem, AccordionTitleText, AccordionTrigger } from '@/components/ui/accordion';
@@ -409,6 +410,7 @@ export default function DashboardScreen() {
     { id: 2, title: 'Members' },
     { id: 3, title: 'Livestocks' },
     { id: 4, title: 'Sensors' },
+    { id: 5, title: 'Analytics' },
   ];
 
   useFocusEffect(
@@ -488,6 +490,9 @@ export default function DashboardScreen() {
                     refreshing={refreshing}
                     onRefresh={handleRefresh}
                   />
+                )}
+                {item.id === 5 && selectedOrganizationId && (
+                  <AnalyticsBoard organizationId={selectedOrganizationId} />
                 )}
               </Box>
             )}

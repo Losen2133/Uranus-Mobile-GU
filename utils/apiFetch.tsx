@@ -960,7 +960,7 @@ export async function createLivestock(
             },
             ph_range: {
                 min: minPh,
-                max: maxTemp,
+                max: maxPh,
             },
         };
 
@@ -1205,6 +1205,41 @@ export async function fetchSensorChartLink(
     } finally {
         if(loadingSetter) loadingSetter(false);
     }
+}
+
+export async function fetchAnalyticsWebViewLink(organizationId: number): Promise<string> {
+    const token = await SecureStore.getItemAsync('userToken');
+
+    if (!token) {
+        throw new Error('No authorization token found. Please log in.');
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${organizationId}/analytics-webview-link`,
+        {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        },
+    );
+
+    if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to open analytics.');
+    }
+
+    if (typeof data.url !== 'string') {
+        throw new Error('The server did not return an analytics link.');
+    }
+
+    return data.url;
 }
 
 type UpdateLivestockProfileParams = {
@@ -1769,7 +1804,6 @@ export async function fetchSensorData(
         throw new Error('No authorization token found. Please log in.');
     }
 
-    
     const response = await fetch(URANUS_URL + `/api/organizations/${selectedOrganizationId}/sensors`, {
         method: 'GET',
         headers: {
