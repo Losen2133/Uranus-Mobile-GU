@@ -1,5 +1,6 @@
 import { LivestockLogData } from "@/interfaces/interfaces";
 import { resolveConcernLog } from "@/utils/apiFetch";
+import { validateRequiredText } from "@/utils/validation";
 import { useEffect, useState } from "react";
 import useAppToast from "./AppToast";
 import { actionTakenField } from "./FormFields";
@@ -24,19 +25,26 @@ export default function ConcernResolutionModal({
     onResolution
 }: ConcernResolutionModalProps) {
     const [actionTaken, setActionTaken] = useState<string | undefined>();
-    const [isInvalidActionTaken, setIsInvalidActionTaken] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const { showToast } = useAppToast();
     
     useEffect(() => {
         if (isOpen) {
             setActionTaken(undefined);
+            setHasSubmitted(false);
         }
     }, [isOpen])
 
     const handleSubmit = async () => {
-        if (!actionTaken) {
-            setIsInvalidActionTaken(true);
+        setHasSubmitted(true);
+
+        const normalizedActionTaken = actionTaken?.trim();
+
+        if (
+            !normalizedActionTaken ||
+            validateRequiredText(normalizedActionTaken, "Action taken")
+        ) {
             return;
         }
 
@@ -50,7 +58,7 @@ export default function ConcernResolutionModal({
             await resolveConcernLog(
                 livestockId,
                 logData.id,
-                actionTaken
+                normalizedActionTaken
             );
 
             onClose();
@@ -67,8 +75,6 @@ export default function ConcernResolutionModal({
             //     error instanceof Error
             //         ? error.message
             //         : "Failed to resolve concern";
-
-            onClose();
 
             showToast({
                 action: "error",
@@ -99,7 +105,9 @@ export default function ConcernResolutionModal({
                     {actionTakenField(
                         actionTaken,
                         setActionTaken,
-                        isInvalidActionTaken
+                        hasSubmitted
+                            ? validateRequiredText(actionTaken ?? "", "Action taken")
+                            : undefined
                     )}
                 </ModalBody>
                 <ModalFooter>

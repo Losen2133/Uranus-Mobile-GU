@@ -2,8 +2,8 @@ import useAppToast from "@/components/AppToast";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
-import { FormControl, FormControlError, FormControlErrorIcon, FormControlErrorText, FormControlLabel, FormControlLabelText } from "@/components/ui/form-control";
-import { AlertCircleIcon } from "@/components/ui/icon";
+import FieldError from "@/components/FieldError";
+import { FormControl, FormControlLabel, FormControlLabelText } from "@/components/ui/form-control";
 import { Image } from "@/components/ui/image";
 import { Input, InputField } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform } from "react-native";
+import { validateEmailAddress } from "@/utils/validation";
 const logoImage = require("../../assets/images/icon.png");
 
 export default function LoginScreen() {
@@ -24,13 +25,18 @@ export default function LoginScreen() {
     
     const { signIn } = useAuth();
 
-    const [isInvalidEmail, setIsInvalidEmail] = useState(false);
-    const [isInvalidPassword, setIsInvalidPassword] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const emailError = hasSubmitted
+        ? validateEmailAddress(email)
+        : undefined;
+    const passwordError = hasSubmitted && !password.trim()
+        ? "Password is required."
+        : undefined;
 
     const handleSubmit = () => {
-        if(!email || !password) {
-            setIsInvalidEmail(true);
-            setIsInvalidPassword(true);
+        setHasSubmitted(true);
+
+        if (validateEmailAddress(email) || !password.trim()) {
             return
         }
 
@@ -47,7 +53,7 @@ export default function LoginScreen() {
                     Accept: 'application/json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email: email.trim(), password }),
             });
 
         const data = await response.json();
@@ -93,7 +99,7 @@ export default function LoginScreen() {
                         </Center>
                         
                         <FormControl
-                            isInvalid={isInvalidEmail}
+                            isInvalid={!!emailError}
                         >
                             <FormControlLabel>
                                 <FormControlLabelText>Email Address</FormControlLabelText>
@@ -106,22 +112,14 @@ export default function LoginScreen() {
                                     placeholderTextColor={'gray'}
                                     value={email}
                                     autoCapitalize="none"
-                                    onChangeText={(text) => setEmail(text)}
+                                    onChangeText={setEmail}
                                 />
                             </Input>
-                            <FormControlError>
-                                <FormControlErrorIcon
-                                    as={AlertCircleIcon}
-                                    className='text-destructive'
-                                />
-                                <FormControlErrorText className='text-destructive'>
-                                    Please fill out this field
-                                </FormControlErrorText>
-                            </FormControlError>
+                            <FieldError message={emailError} />
                         </FormControl>
 
                         <FormControl
-                            isInvalid={isInvalidPassword}
+                            isInvalid={!!passwordError}
                         >
                             <FormControlLabel>
                                 <FormControlLabelText>Password</FormControlLabelText>
@@ -132,19 +130,11 @@ export default function LoginScreen() {
                                     placeholder="Password"
                                     placeholderTextColor={'gray'}
                                     value={password}
-                                    onChangeText={(text) => setPassword(text)}
+                                    onChangeText={setPassword}
                                     autoCapitalize="none"
                                 />
                             </Input>
-                            <FormControlError>
-                                <FormControlErrorIcon
-                                    as={AlertCircleIcon}
-                                    className='text-destructive'
-                                />
-                                <FormControlErrorText className="text-destructive">
-                                    Please fill out this field
-                                </FormControlErrorText>
-                            </FormControlError>
+                            <FieldError message={passwordError} />
                         </FormControl>
 
                         <Button
@@ -160,7 +150,7 @@ export default function LoginScreen() {
                         >
                             Don't have an account?{' '}
                             <Link 
-                                href={(URANUS_URL + '/register') as any} 
+                                href={(URANUS_URL + '/register') as any}
                                 className="text-white underline font-bold"
                             >
                                 Sign up

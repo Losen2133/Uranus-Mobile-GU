@@ -62,19 +62,15 @@ export default function MaintenanceReminderFormPage() {
     const [loading, setLoading] = useState(isEditMode);
 
     const [title, setTitle] = useState("");
-    const [isInvalidTitle, setIsInvalidTitle] = useState(false);
-
     const [description, setDescription] = useState("");
-    const [isInvalidDescription, setIsInvalidDescription] = useState(false);
 
     const [scheduledAt, setScheduledAt] = useState<Date | undefined>();
-    const [isInvalidScheduledAt, setIsInvalidScheduledAt] = useState(false);
 
     const [isReminderAction, setIsReminderAction] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [status, setStatus] = useState<'pending' | 'completed' | 'cancelled' | undefined>();
-    const [isInvalidStatus, setIsInvalidStatus] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
 
     // Fetch the reminder when editing.
     const handleFetchReminder = useCallback(async () => {
@@ -176,35 +172,19 @@ export default function MaintenanceReminderFormPage() {
         );
     };
 
-    const everythingIsOk = () => {
-        let valid = true;
-
-        setIsInvalidTitle(false);
-        setIsInvalidDescription(false);
-        setIsInvalidScheduledAt(false);
-        setIsInvalidStatus(false);
-
-        if (!title.trim()) {
-            setIsInvalidTitle(true);
-            valid = false;
-        }
-
-        if (
-            !scheduledAt ||
-            Number.isNaN(scheduledAt.getTime()) ||
-            (scheduledAt <= new Date() && !isOriginalScheduledAt())
-        ) {
-            setIsInvalidScheduledAt(true);
-            valid = false;
-        }
-
-        if (isEditMode && !status) {
-            setIsInvalidStatus(true);
-            valid = false;
-        }
-
-        return valid;
-    };
+    const titleError = hasSubmitted && !title.trim()
+        ? "Reminder title is required."
+        : undefined;
+    const scheduledAtError = hasSubmitted && (
+        !scheduledAt ||
+        Number.isNaN(scheduledAt.getTime()) ||
+        (scheduledAt <= new Date() && !isOriginalScheduledAt())
+    )
+        ? "Select a valid date and time in the future."
+        : undefined;
+    const statusError = hasSubmitted && isEditMode && !status
+        ? "Select a reminder status."
+        : undefined;
 
 
     const hasFormChanges = () => {
@@ -227,15 +207,16 @@ export default function MaintenanceReminderFormPage() {
     const hasChanges = hasFormChanges();
 
     
-    const isFormComplete =
-        title.trim().length > 0 &&
-        scheduledAt instanceof Date &&
-        !Number.isNaN(scheduledAt.getTime()) &&
-        (scheduledAt.getTime() > Date.now() || isOriginalScheduledAt());
-
-
     const handleSubmit = () => {
-        if (!everythingIsOk()) {
+        setHasSubmitted(true);
+
+        if (
+            !title.trim() ||
+            !scheduledAt ||
+            Number.isNaN(scheduledAt.getTime()) ||
+            (scheduledAt <= new Date() && !isOriginalScheduledAt()) ||
+            (isEditMode && !status)
+        ) {
             return;
         }
 
@@ -367,15 +348,14 @@ export default function MaintenanceReminderFormPage() {
                             {maintenanceReminderTitleField(
                                 title,
                                 setTitle,
-                                isInvalidTitle
+                                titleError
                             )}
 
                             <Divider />
 
                             {maintenanceReminderDescriptionField(
                                 description,
-                                setDescription,
-                                isInvalidDescription
+                                setDescription
                             )}
 
                             {isEditMode && (
@@ -384,7 +364,8 @@ export default function MaintenanceReminderFormPage() {
 
                                     {maintenanceReminderStatusField(
                                         status,
-                                        setStatus
+                                        setStatus,
+                                        statusError
                                     )}
                                 </>
                             )}
@@ -393,23 +374,17 @@ export default function MaintenanceReminderFormPage() {
 
                             {dateTimePicker(
                                 scheduledAt,
-                                setScheduledAt
+                                setScheduledAt,
+                                scheduledAtError
                             )}
 
                             <Text className="text-sm text-muted-foreground">
                                 Please select a date and time in the future.
                             </Text>
 
-                            {isInvalidScheduledAt && (
-                                <Text className="text-error-500">
-                                    Please select a valid date and time in the future.
-                                </Text>
-                            )}
-
                             <Button
                                 onPress={handleSubmit}
                                 isDisabled={
-                                    !isFormComplete ||
                                     isSubmitting ||
                                     (isEditMode && !hasChanges)
                                 }

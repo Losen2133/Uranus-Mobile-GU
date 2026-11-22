@@ -1,4 +1,5 @@
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
+import useAppToast from "@/components/AppToast";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
@@ -6,6 +7,8 @@ import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { FormControl } from "@/components/ui/form-control";
+import FieldError from "@/components/FieldError";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { UserSettings } from "@/interfaces/interfaces";
 import { fetchUserSettings, updateUserSettings } from "@/utils/apiFetch";
@@ -25,11 +28,18 @@ export default function SettingsScreen() {
     const [modifiedSettings, setModifiedSettings] = useState<UserSettings | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const [confirmLeave, setConfirmLeave] = useState(false);
     const [pendingAction, setPendingAction] = useState<any>(null);
     const [confirmRedo, setConfirmRedo] = useState(false);
     const [confirmChanges, setConfirmChanges] = useState(false);
     const navigation = useNavigation();
+    const { showToast } = useAppToast();
+    const supportedTemperatureUnits = ["celcius", "fahrenheit", "kelvin"];
+    const temperatureUnitError = modifiedSettings &&
+        !supportedTemperatureUnits.includes(modifiedSettings.temp_unit)
+            ? "Select a supported temperature unit."
+            : undefined;
 
     const hasChanges =
         JSON.stringify(fetchedUserSettings) !==
@@ -107,10 +117,12 @@ export default function SettingsScreen() {
                         </Text>
                     </VStack>
 
+                    <FormControl isInvalid={!!temperatureUnitError}>
                     <Box className="border border-white p-1 h-10 items-center justify-center rounded-md">
                         <Picker
                             selectedValue={modifiedSettings?.temp_unit}
                             onValueChange={(value) => {
+                                setSaveError(null);
                                 setModifiedSettings((prev) => {
                                     if (!prev) return prev;
 
@@ -143,8 +155,20 @@ export default function SettingsScreen() {
                             />
                         </Picker>
                     </Box>
+                    <FieldError message={temperatureUnitError} />
+                    </FormControl>
                     
                 </HStack>
+                {error && (
+                    <Text className="text-red-500">
+                        {error}
+                    </Text>
+                )}
+                {saveError && (
+                    <Text className="text-red-500">
+                        {saveError}
+                    </Text>
+                )}
                 {hasChanges && (
                     <Center>
                         <Text className="text-red-500">
@@ -208,6 +232,11 @@ export default function SettingsScreen() {
                                     return;
                                 }
 
+                                if (!supportedTemperatureUnits.includes(modifiedSettings.temp_unit)) {
+                                    setConfirmChanges(false);
+                                    return;
+                                }
+
                                 try {
                                     const updatedSettings = await updateUserSettings(
                                         modifiedSettings
@@ -217,10 +246,20 @@ export default function SettingsScreen() {
 
                                     setFetchedUserSettings(updatedSettings);
                                     setModifiedSettings(updatedSettings);
+                                    setSaveError(null);
 
                                     setConfirmChanges(false);
                                 } catch (error) {
-                                    console.error("Failed to save settings:", error);
+                                    const message = error instanceof Error
+                                        ? error.message
+                                        : "Failed to save settings. Please try again.";
+                                    setSaveError(message);
+                                    setConfirmChanges(false);
+                                    showToast({
+                                        action: "error",
+                                        title: "Settings Not Saved",
+                                        description: message,
+                                    });
                                 }
                             }}
                         >

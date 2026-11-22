@@ -24,6 +24,7 @@ import { VStack } from "@/components/ui/vstack";
 import { useAuth } from "@/hooks/useAuth";
 import { UserData } from "@/interfaces/interfaces";
 import { deleteAccount, getMe, updateMe } from "@/utils/apiFetch";
+import { validateEmailAddress, validateRequiredText } from "@/utils/validation";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRouter } from "expo-router";
 import { ShieldLock } from "lucide-react-native";
@@ -31,10 +32,9 @@ import { useEffect, useLayoutEffect, useState } from "react";
 
 export default function ProfileScreen() {
     const [userName, setUserName] = useState<string>('');
-    const [isInvalidUserName, setIsInvalidUserName] = useState(false);
     const [userEmail, setUserEmail] = useState<string>('');
     const [loading, setLoading] = useState(true);
-    const [isInvalidUserEmail, setIsInvalidUserEmail] = useState(false);
+    const [hasSubmittedProfile, setHasSubmittedProfile] = useState(false);
     const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [changeImage, setChangeImage] = useState(false);
     const [oldImage, setOldImage] = useState<string>('');
@@ -75,6 +75,12 @@ export default function ProfileScreen() {
     };
 
     const handleUpdateProfile = async () => {
+        setHasSubmittedProfile(true);
+
+        if (validateRequiredText(userName, "Name") || validateEmailAddress(userEmail)) {
+            return;
+        }
+
         if (!userData) {
             return;
         }
@@ -86,8 +92,8 @@ export default function ProfileScreen() {
 
             await updateMe({
                 userId: userData.id,
-                userName: nameChanged ? userName : undefined,
-                userEmail: emailChanged ? userEmail : undefined,
+                userName: nameChanged ? userName.trim() : undefined,
+                userEmail: emailChanged ? userEmail.trim() : undefined,
                 image: imageChanged ? image : undefined,
             });
 
@@ -95,6 +101,7 @@ export default function ProfileScreen() {
 
             setImage(null);
             setChangeImage(false);
+            setHasSubmittedProfile(false);
 
             showToast({
                 action: 'success',
@@ -158,6 +165,8 @@ export default function ProfileScreen() {
                         ? error.message
                         : "Failed to delete your account. Please try again later.",
             });
+
+            throw error;
         }
     };
 
@@ -190,42 +199,68 @@ export default function ProfileScreen() {
     }, [userData]);
 
     const pickImage = async () => {
-        const permission =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        try {
+            const permission =
+                await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-        if (!permission.granted) {
-            return;
-        }
+            if (!permission.granted) {
+                showToast({
+                    action: "warning",
+                    title: "Photo Access Needed",
+                    description: "Allow photo-library access to choose an image.",
+                });
+                return;
+            }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0]);
+            if (!result.canceled && result.assets[0]) {
+                setImage(result.assets[0]);
+            }
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Image Selection Failed",
+                description: error instanceof Error ? error.message : "Unable to select an image.",
+            });
         }
     };
 
     const takePhoto = async () => {
-        const permission =
-            await ImagePicker.requestCameraPermissionsAsync();
+        try {
+            const permission =
+                await ImagePicker.requestCameraPermissionsAsync();
 
-        if (!permission.granted) {
-            return;
-        }
+            if (!permission.granted) {
+                showToast({
+                    action: "warning",
+                    title: "Camera Access Needed",
+                    description: "Allow camera access to take a photo.",
+                });
+                return;
+            }
 
-        const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0]);
+            if (!result.canceled && result.assets[0]) {
+                setImage(result.assets[0]);
+            }
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Camera Failed",
+                description: error instanceof Error ? error.message : "Unable to take a photo.",
+            });
         }
     };
 
@@ -315,19 +350,23 @@ export default function ProfileScreen() {
                     {userNameField(
                         userName,
                         setUserName,
-                        isInvalidUserName
+                        hasSubmittedProfile
+                            ? validateRequiredText(userName, "Name")
+                            : undefined
                     )}
 
                     {userEmailField(
                         userEmail,
                         setUserEmail,
-                        isInvalidUserEmail
+                        hasSubmittedProfile
+                            ? validateEmailAddress(userEmail)
+                            : undefined
                     )}
 
                     <Divider />
 
                     <Button
-                        isDisabled={!hasChanges}
+                        isDisabled={!hasChanges || loading}
                         onPress={handleUpdateProfile}
                     >
                         <ButtonText>Save</ButtonText>

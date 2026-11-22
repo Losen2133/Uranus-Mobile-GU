@@ -19,14 +19,23 @@ export default function LivestockLogFormPage() {
     const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
     const [logTitle, setLogTitle] = useState<string>('');
-    const [isInvalidLogTitle, setIsInvalidLogTitle] = useState(false);
     const [logDescription, setLogDescription] = useState<string>('');
-    const [isInvalidLogDescription, setIsInvalidLogDescription] = useState(false);
     const [concernSeverity, setConcernSeverity] = useState<"low" | "moderate" | "high" | "critical">()
+    const [hasSubmitted, setHasSubmitted] = useState(false);
     const [isCreatingLog, setIsCreatingLog] = useState(false);
     const [loading, setLoading] = useState(false);
     const { showToast } = useAppToast();
     const router = useRouter();
+
+    const logTitleError = hasSubmitted && !logTitle.trim()
+        ? "Log title is required."
+        : undefined;
+    const logDescriptionError = hasSubmitted && !logDescription.trim()
+        ? "Description is required."
+        : undefined;
+    const severityError = hasSubmitted && logType === "concern" && !concernSeverity
+        ? "Select a severity."
+        : undefined;
 
     const handleCreateLivestockLog = async () => {
         if (!logType) {
@@ -41,14 +50,14 @@ export default function LivestockLogFormPage() {
                     logType: "log",
                     selectedLivestockId,
                     image,
-                    logTitle,
-                    logDescription,
+                    logTitle: logTitle.trim(),
+                    logDescription: logDescription.trim(),
                 });
 
                 showToast({
                     action: "success",
                     title: "Log Created",
-                    description: `${logTitle}, created successfully`,
+                    description: `${logTitle.trim()}, created successfully`,
                 });
             } else {
                 await createLivestockLog({
@@ -56,14 +65,14 @@ export default function LivestockLogFormPage() {
                     concernSeverity,
                     selectedLivestockId,
                     image,
-                    logTitle,
-                    logDescription,
+                    logTitle: logTitle.trim(),
+                    logDescription: logDescription.trim(),
                 });
 
                 showToast({
                     action: "success",
                     title: "Concern Created",
-                    description: `${logTitle}, created successfully`,
+                    description: `${logTitle.trim()}, created successfully`,
                 });
             }
 
@@ -78,89 +87,92 @@ export default function LivestockLogFormPage() {
             });
 
             setIsCreatingLog(false);
-
-            router.back();
         } finally {
             setLoading(false);
         }
     };
 
     const pickImage = async () => {
-        const permission =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        try {
+            const permission =
+                await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-        if (!permission.granted) {
-            return;
-        }
+            if (!permission.granted) {
+                showToast({
+                    action: "warning",
+                    title: "Photo Access Needed",
+                    description: "Allow photo-library access to choose an image.",
+                });
+                return;
+            }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0]);
+            if (!result.canceled && result.assets[0]) {
+                setImage(result.assets[0]);
+            }
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Image Selection Failed",
+                description: error instanceof Error ? error.message : "Unable to select an image.",
+            });
         }
     };
 
     const takePhoto = async () => {
-        const permission =
-            await ImagePicker.requestCameraPermissionsAsync();
+        try {
+            const permission =
+                await ImagePicker.requestCameraPermissionsAsync();
 
-        if (!permission.granted) {
-            return;
-        }
+            if (!permission.granted) {
+                showToast({
+                    action: "warning",
+                    title: "Camera Access Needed",
+                    description: "Allow camera access to take a photo.",
+                });
+                return;
+            }
 
-        const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0]);
+            if (!result.canceled && result.assets[0]) {
+                setImage(result.assets[0]);
+            }
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Camera Failed",
+                description: error instanceof Error ? error.message : "Unable to take a photo.",
+            });
         }
     };
 
-    const everythingIsOk = () => {
-        let valid = true;
-
-        setIsInvalidLogTitle(false);
-        setIsInvalidLogDescription(false);
-
-        if(!logTitle.trim()) {
-            setIsInvalidLogTitle(true);
-            valid = false;
-        }
-
-        if(!logDescription?.trim()) {
-            setIsInvalidLogDescription(false);
-            valid = false;
-        }
-
-        return valid;
-    }
-
     const handleSubmit = () => {
-        if (!everythingIsOk()) {
+        setHasSubmitted(true);
+
+        if (
+            !logTitle.trim() ||
+            !logDescription.trim() ||
+            !logType ||
+            (logType === "concern" && !concernSeverity)
+        ) {
             return;
         }
 
         setIsCreatingLog(true);
     }
 
-    const isFormComplete =
-        logType !== undefined &&
-        logTitle.trim().length > 0 &&
-        logDescription.trim().length > 0 &&
-        (
-            logType === "log" ||
-            (logType === "concern" && concernSeverity !== undefined)
-        );
-    
     return (
         <>
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -174,17 +186,17 @@ export default function LivestockLogFormPage() {
                             <>
                                 {imageField(image?.uri ?? null, setIsImagePickerOpen, "Log Image")}
                                 <Divider />
-                                {logTitleField(logTitle, setLogTitle, isInvalidLogTitle)}
-                                {logDescriptionField(logDescription, setLogDescription, isInvalidLogDescription)}
+                                {logTitleField(logTitle, setLogTitle, logTitleError)}
+                                {logDescriptionField(logDescription, setLogDescription, logDescriptionError)}
                                 {logType === "concern" && (
                                     <>
                                         <Divider />
-                                        {concernSeverityPickerField(concernSeverity, setConcernSeverity)}
+                                        {concernSeverityPickerField(concernSeverity, setConcernSeverity, severityError)}
                                     </>
                                 )}
                                 <Button
                                     onPress={handleSubmit}
-                                    isDisabled={!isFormComplete}
+                                    isDisabled={loading}
                                 >
                                     <ButtonText>Create {logType === "log" ? "Log" : "Concern"}</ButtonText>
                                 </Button>

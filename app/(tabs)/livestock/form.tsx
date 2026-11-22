@@ -11,6 +11,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { LivestockProfileData } from "@/interfaces/interfaces";
 import { createLivestock, fetchLivestockProfileData } from "@/utils/apiFetch";
 import { convertTemperature, TempUnit } from "@/utils/stringUtils";
+import { validateRequiredText, validateWholeNumber } from "@/utils/validation";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -25,38 +26,26 @@ export default function LivestockFormPage() {
     const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
     const [livestockType, setLivestockType] = useState<"plant" | "fish">();
-    const [isInvalidLivestockName, setIsInvalidLivestockName] = useState(false);
     const [livestockName, setLivestockName] = useState('');
-    const [isInvalidDescription, setIsInvalidDescription] = useState(false);
     const [description, setDescription] = useState('');
     const [useProfile, setUseProfile] = useState<boolean>();
     const [selectedProfile, setSelectedProfile] = useState<LivestockProfileData | null>(null);
     const [selectedProfileId, setSelectedProfileId] = useState<number>();
-    const [isInvalidSpeciesName, setIsInvalidSpeciesName] = useState(false);
     const [speciesName, setSpeciesName] = useState<string | undefined>('');
     const [tempUnit, setTempUnit] = useState<TempUnit>("celcius");
-    const [isInvalidMinTemp, setIsInvalidMinTemp] = useState(false);
     const [minTemp, setMinTemp] = useState<number>();
-    const [isInvalidMaxTemp, setIsInvalidMaxTemp] = useState(false);
     const [maxTemp, setMaxTemp] = useState<number>();
-    const [isInvalidMinPh, setIsInvalidMinPh] = useState(false);
     const [minPh, setMinPh] = useState<number>();
-    const [isInvalidMaxPh, setIsInvalidMaxPh] = useState(false);
     const [maxPh, setMaxPh] = useState<number>();
-    const [isInvalidHarvestDays, setIsInvalidHarvestDays] = useState(false);
     const [harvestDays, setHarvestDays] = useState<number>();
-    const [isInvalidNurseryDays, setIsInvalidNurseryDays] = useState(false);
     const [nurseryDays, setNurseryDays] = useState<number>();
-    const [isInvalidGrowthDays, setIsInvalidGrowthDays] = useState(false);
     const [growthDays, setGrowthDays] = useState<number>();
-    const [isInvalidAge, setIsInvalidAge] = useState(false);
     const [age, setAge] = useState<number>();
     const [isCreatingLivestock, setIsCreatingLivestock] = useState(false);
     const [notify, setNotify] = useState(false);
     const [frequency, setFrequency] = useState<'daily' | 'weekly'>();
-    const [isInvalidFrequency, setIsInvalidFrequency] = useState(false);
     const [notificationTime, setNotificationTime] = useState<Date | undefined>();
-    const [isInvalidNotificationTime, setIsInvalidNotificationTime] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
     const router = useRouter();
     const { showToast } = useAppToast();
 
@@ -197,42 +186,68 @@ export default function LivestockFormPage() {
     }, [useProfile]);
 
     const pickImage = async () => {
-        const permission =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        try {
+            const permission =
+                await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-        if (!permission.granted) {
-            return;
-        }
+            if (!permission.granted) {
+                showToast({
+                    action: "warning",
+                    title: "Photo Access Needed",
+                    description: "Allow photo-library access to choose an image.",
+                });
+                return;
+            }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0]);
+            if (!result.canceled && result.assets[0]) {
+                setImage(result.assets[0]);
+            }
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Image Selection Failed",
+                description: error instanceof Error ? error.message : "Unable to select an image.",
+            });
         }
     };
 
     const takePhoto = async () => {
-        const permission =
-            await ImagePicker.requestCameraPermissionsAsync();
+        try {
+            const permission =
+                await ImagePicker.requestCameraPermissionsAsync();
 
-        if (!permission.granted) {
-            return;
-        }
+            if (!permission.granted) {
+                showToast({
+                    action: "warning",
+                    title: "Camera Access Needed",
+                    description: "Allow camera access to take a photo.",
+                });
+                return;
+            }
 
-        const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-        });
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
 
-        if (!result.canceled) {
-            setImage(result.assets[0]);
+            if (!result.canceled && result.assets[0]) {
+                setImage(result.assets[0]);
+            }
+        } catch (error) {
+            showToast({
+                action: "error",
+                title: "Camera Failed",
+                description: error instanceof Error ? error.message : "Unable to take a photo.",
+            });
         }
     };
 
@@ -278,137 +293,99 @@ export default function LivestockFormPage() {
         setAge(undefined);
     };
 
-    const everythingIsOk = () => {
-        let valid = true;
-
-        // Reset errors first
-        setIsInvalidLivestockName(false);
-        setIsInvalidDescription(false);
-        setIsInvalidSpeciesName(false);
-        setIsInvalidMinTemp(false);
-        setIsInvalidMaxTemp(false);
-        setIsInvalidMinPh(false);
-        setIsInvalidMaxPh(false);
-        setIsInvalidHarvestDays(false);
-        setIsInvalidNurseryDays(false);
-        setIsInvalidFrequency(false);
-        setIsInvalidNotificationTime(false);
-
-        if (!livestockName.trim()) {
-            setIsInvalidLivestockName(true);
-            valid = false;
+    const handleLivestockTypeChange = (nextType: "plant" | "fish" | undefined) => {
+        if (livestockType === nextType) {
+            return;
         }
 
-        if (!description.trim()) {
-            setIsInvalidDescription(true);
-            valid = false;
+        setLivestockType(nextType);
+        setSelectedProfile(null);
+        resetLivestockFields();
+    };
+
+    const getValidationErrors = (): Record<string, string> => {
+        const errors: Record<string, string> = {};
+        const nameError = validateRequiredText(livestockName, "Livestock name");
+        const descriptionError = validateRequiredText(description, "Description");
+
+        if (nameError) errors.livestockName = nameError;
+        if (descriptionError) errors.description = descriptionError;
+        if (useProfile === undefined) errors.useProfile = "Choose whether to use a livestock profile.";
+        if (useProfile && !selectedProfile) errors.profile = "Select a livestock profile.";
+        if ((useProfile === false || selectedProfile) && !speciesName?.trim()) {
+            errors.speciesName = "Species name is required.";
         }
 
-        if (!speciesName?.trim()) {
-            setIsInvalidSpeciesName(true);
-            valid = false;
-        }
-
-        const minTempCelcius = minTemp !== undefined
-            ? convertTemperature(minTemp, tempUnit, "celcius")
-            : undefined;
+        const minTempCelsius = minTemp === undefined
+            ? undefined
+            : convertTemperature(minTemp, tempUnit, "celcius");
+        const maxTempCelsius = maxTemp === undefined
+            ? undefined
+            : convertTemperature(maxTemp, tempUnit, "celcius");
 
         if (
-            minTempCelcius === undefined ||
-            minTempCelcius <= 0 ||
-            minTempCelcius >= 100
+            minTempCelsius === undefined ||
+            !Number.isFinite(minTempCelsius) ||
+            minTempCelsius <= 0 ||
+            minTempCelsius >= 100
         ) {
-            setIsInvalidMinTemp(true);
-            valid = false;
+            errors.minTemp = "Enter a temperature greater than 0°C and less than 100°C.";
         }
-
-        const maxTempCelcius = maxTemp !== undefined
-            ? convertTemperature(maxTemp, tempUnit, "celcius")
-            : undefined;
-
         if (
-            maxTempCelcius === undefined ||
-            maxTempCelcius <= 0 ||
-            maxTempCelcius >= 100
+            maxTempCelsius === undefined ||
+            !Number.isFinite(maxTempCelsius) ||
+            maxTempCelsius <= 0 ||
+            maxTempCelsius >= 100
         ) {
-            setIsInvalidMaxTemp(true);
-            valid = false;
+            errors.maxTemp = "Enter a temperature greater than 0°C and less than 100°C.";
+        } else if (minTempCelsius !== undefined && maxTempCelsius <= minTempCelsius) {
+            errors.maxTemp = "Maximum temperature must be greater than minimum temperature.";
         }
 
-        if (minPh === undefined || minPh < 0 || minPh > 14) {
-            setIsInvalidMinPh(true);
-            valid = false;
+        if (minPh === undefined || !Number.isFinite(minPh) || minPh < 0 || minPh > 14) {
+            errors.minPh = "Enter a pH value from 0 to 14.";
+        }
+        if (maxPh === undefined || !Number.isFinite(maxPh) || maxPh < 0 || maxPh > 14) {
+            errors.maxPh = "Enter a pH value from 0 to 14.";
+        } else if (minPh !== undefined && maxPh <= minPh) {
+            errors.maxPh = "Maximum pH must be greater than minimum pH.";
         }
 
-        if (maxPh === undefined || maxPh < 0 || maxPh > 14) {
-            setIsInvalidMaxPh(true);
-            valid = false;
+        if (livestockType === "plant") {
+            const harvestDaysError = validateWholeNumber(harvestDays, "Harvest days");
+            const nurseryDaysError = validateWholeNumber(nurseryDays, "Nursery days");
+            if (harvestDaysError) errors.harvestDays = harvestDaysError;
+            if (nurseryDaysError) errors.nurseryDays = nurseryDaysError;
         }
 
-        if (livestockType === "plant" && !harvestDays) {
-            setIsInvalidHarvestDays(true);
-            valid = false;
-        }
-
-        if (livestockType === "plant" && !nurseryDays) {
-            setIsInvalidNurseryDays(true);
-            valid = false;
-        }
-
-        if (livestockType === "fish" && !growthDays) {
-            setIsInvalidGrowthDays(true);
-            valid = false;
-        }
-
-        if (livestockType === "fish" && !age) {
-            setIsInvalidAge(true);
-            valid = false;
+        if (livestockType === "fish") {
+            const growthDaysError = validateWholeNumber(growthDays, "Growth days");
+            const ageError = validateWholeNumber(age, "Age", true);
+            if (growthDaysError) errors.growthDays = growthDaysError;
+            if (ageError) errors.age = ageError;
         }
 
         if (notify) {
-            if (!frequency) {
-                setIsInvalidFrequency(true);
-                valid = false;
-            }
-
-            if (!notificationTime) {
-                setIsInvalidNotificationTime(true);
-                valid = false;
+            if (!frequency) errors.frequency = "Choose a notification frequency.";
+            if (!notificationTime || Number.isNaN(notificationTime.getTime())) {
+                errors.notificationTime = "Select a notification time.";
             }
         }
 
-        return valid;
+        return errors;
     };
 
+    const validationErrors = hasSubmitted ? getValidationErrors() : {};
+
     const handleSubmit = () => {
-        if (!everythingIsOk()) {
+        setHasSubmitted(true);
+
+        if (Object.keys(getValidationErrors()).length > 0) {
             return;
         }
 
         setIsCreatingLivestock(true);
     };
-
-    const isFormComplete =
-        livestockType !== undefined &&
-        livestockName.trim().length > 0 &&
-        description.trim().length > 0 &&
-        !!speciesName?.trim() &&
-        minTemp !== undefined &&
-        maxTemp !== undefined &&
-        minPh !== undefined &&
-        maxPh !== undefined &&
-        (
-            livestockType === "fish"
-                ? growthDays !== undefined && age !== undefined
-                : harvestDays !== undefined && nurseryDays !== undefined
-        ) &&
-        (
-            !notify ||
-            (
-                frequency !== undefined &&
-                notificationTime !== undefined
-            )
-        );
 
     return (
         <>
@@ -417,7 +394,7 @@ export default function LivestockFormPage() {
                     <VStack className="flex-1 p-5"
                         space="md"
                     >
-                        {livestockTypeField(livestockType, setLivestockType, "manual")}
+                        {livestockTypeField(livestockType, handleLivestockTypeChange, "manual")}
                         <Divider />
                         {livestockType && (
                             <>
@@ -426,13 +403,13 @@ export default function LivestockFormPage() {
                                 {livestockNameField(
                                     livestockName,
                                     setLivestockName,
-                                    isInvalidLivestockName
+                                    validationErrors.livestockName
                                 )}
                                 
                                 {livestockDescriptionField(
                                     description,
                                     setDescription,
-                                    isInvalidDescription
+                                    validationErrors.description
                                 )}
                                 <Divider />
                                 {notifyField(
@@ -443,11 +420,13 @@ export default function LivestockFormPage() {
                                     <>
                                         {frequencyField(
                                             frequency,
-                                            setFrequency
+                                            setFrequency,
+                                            validationErrors.frequency
                                         )}
                                         {timePicker(
                                             notificationTime,
-                                            setNotificationTime
+                                            setNotificationTime,
+                                            validationErrors.notificationTime
                                         )}
                                     </>
                                 )}
@@ -455,7 +434,8 @@ export default function LivestockFormPage() {
                                 {useLivestockProfileField(
                                     useProfile,
                                     setUseProfile,
-                                    setSelectedProfile
+                                    setSelectedProfile,
+                                    validationErrors.useProfile
                                 )}
                                 {useProfile === true ? (
                                     <>
@@ -466,7 +446,8 @@ export default function LivestockFormPage() {
                                             setSelectedProfile,
                                             livestockType,
                                             livestockProfiles,
-                                            applyLivestockProfile
+                                            applyLivestockProfile,
+                                            validationErrors.profile
                                         )}
 
                                         {/* Show this ONLY when a profile has been selected */}
@@ -479,7 +460,7 @@ export default function LivestockFormPage() {
                                                             "auto",
                                                             speciesName ?? "",
                                                             setSpeciesName,
-                                                            isInvalidSpeciesName,
+                                                            validationErrors.speciesName,
                                                             "Ex: Tomato"
                                                         )}
                                                     </>
@@ -491,7 +472,7 @@ export default function LivestockFormPage() {
                                                             "manual",
                                                             speciesName ?? "",
                                                             setSpeciesName,
-                                                            isInvalidSpeciesName,
+                                                            validationErrors.speciesName,
                                                             "Ex: Tilapia"
                                                         )}
                                                     </>
@@ -501,40 +482,40 @@ export default function LivestockFormPage() {
                                                 {numberField(
                                                     "auto",
                                                     "Ideal Minimum Temperature",
-                                                    "Please enter a valid temperature",
+                                                    validationErrors.minTemp ?? "Enter a temperature within the supported range.",
                                                     minTemp,
                                                     setMinTemp,
-                                                    isInvalidMinTemp,
+                                                    !!validationErrors.minTemp,
                                                     selectedProfile.data.ideal_temp.min
                                                 )}
 
                                                 {numberField(
                                                     "auto",
-                                                    "Ideal Minimum Temperature",
-                                                    "Please enter a valid temperature",
+                                                    "Ideal Maximum Temperature",
+                                                    validationErrors.maxTemp ?? "Enter a temperature within the supported range.",
                                                     maxTemp,
                                                     setMaxTemp,
-                                                    isInvalidMaxTemp,
+                                                    !!validationErrors.maxTemp,
                                                     selectedProfile.data.ideal_temp.max
                                                 )}
                                                 {<Divider />}
                                                 {numberField(
                                                     "auto",
-                                                    "Ideal Maximum pH Level",
-                                                    "Please enter a valid pH level",
+                                                    "Ideal Minimum pH Level",
+                                                    validationErrors.minPh ?? "Enter a pH value from 0 to 14.",
                                                     minPh,
                                                     setMinPh,
-                                                    isInvalidMinPh,
+                                                    !!validationErrors.minPh,
                                                     selectedProfile.data.ph_range.min
                                                 )}
 
                                                 {numberField(
                                                     "auto",
                                                     "Ideal Maximum pH Level",
-                                                    "Please enter a valid pH level",
+                                                    validationErrors.maxPh ?? "Enter a pH value from 0 to 14.",
                                                     maxPh,
                                                     setMaxPh,
-                                                    isInvalidMaxPh,
+                                                    !!validationErrors.maxPh,
                                                     selectedProfile.data.ph_range.max
                                                 )}
                                                 {<Divider />}
@@ -543,10 +524,10 @@ export default function LivestockFormPage() {
                                                         {numberField(
                                                             "auto",
                                                             "Days in the Nursery",
-                                                            "Please input a valid amount of days",
+                                                            validationErrors.nurseryDays ?? "Enter a whole number greater than zero.",
                                                             nurseryDays,
                                                             setNurseryDays,
-                                                            isInvalidNurseryDays,
+                                                            !!validationErrors.nurseryDays,
                                                             selectedProfile.data.nursery_days,
                                                             "This days are for how long the plant should be in the nursery"
                                                         )}
@@ -554,10 +535,10 @@ export default function LivestockFormPage() {
                                                         {numberField(
                                                                 "auto",
                                                                 "Days until Harvest",
-                                                                "Please input a valid amount of days",
+                                                                validationErrors.harvestDays ?? "Enter a whole number greater than zero.",
                                                                 harvestDays,
                                                                 setHarvestDays,
-                                                                isInvalidHarvestDays,
+                                                                !!validationErrors.harvestDays,
                                                                 selectedProfile.data.harvest_days,
                                                                 "This days are for how long the plant should stay in the growbed"
                                                         )}
@@ -567,10 +548,10 @@ export default function LivestockFormPage() {
                                                         {numberField(
                                                             "auto",
                                                             "Days it takes to mature",
-                                                            "Please input a valid amount of days",
+                                                            validationErrors.growthDays ?? "Enter a whole number greater than zero.",
                                                             growthDays,
                                                             setGrowthDays,
-                                                            isInvalidGrowthDays,
+                                                            !!validationErrors.growthDays,
                                                             selectedProfile.data.growth_days,
                                                             "This days are for how long it takes for the fish to mature for harvest"
                                                         )}
@@ -578,10 +559,10 @@ export default function LivestockFormPage() {
                                                         {numberField(
                                                             "auto",
                                                             "Current Age in Days",
-                                                            "Please input a valid amount of days",
+                                                            validationErrors.age ?? "Enter a whole number of zero or more.",
                                                             age,
                                                             setAge,
-                                                            isInvalidAge,
+                                                            !!validationErrors.age,
                                                             selectedProfile.data.age,
                                                             "This is the current age of the fish in days"
                                                         )}
@@ -601,7 +582,7 @@ export default function LivestockFormPage() {
                                                     "manual",
                                                     speciesName ?? "",
                                                     setSpeciesName,
-                                                    isInvalidSpeciesName,
+                                                    validationErrors.speciesName,
                                                     "Ex: Tomato"
                                                 )}
                                             </>
@@ -613,7 +594,7 @@ export default function LivestockFormPage() {
                                                     "manual",
                                                     speciesName ?? "",
                                                     setSpeciesName,
-                                                    isInvalidSpeciesName,
+                                                    validationErrors.speciesName,
                                                     "Ex: Tilapia"
                                                 )}
                                             </>
@@ -622,37 +603,37 @@ export default function LivestockFormPage() {
                                         {numberField(
                                             "manual",
                                             `Ideal Minimum Temperature (${currentTemperatureUnit})`,
-                                            `Please enter a valid temperature in ${currentTemperatureUnit}`,
+                                            validationErrors.minTemp ?? `Enter a temperature greater than 0°C and less than 100°C.`,
                                             minTemp,
                                             setMinTemp,
-                                            isInvalidMinTemp,
+                                            !!validationErrors.minTemp,
                                         )}
 
                                         {numberField(
                                             "manual",
                                             `Ideal Maximum Temperature (${currentTemperatureUnit})`,
-                                            `Please enter a valid temperature in ${currentTemperatureUnit}`,
+                                            validationErrors.maxTemp ?? `Enter a temperature greater than 0°C and less than 100°C.`,
                                             maxTemp,
                                             setMaxTemp,
-                                            isInvalidMaxTemp,
+                                            !!validationErrors.maxTemp,
                                         )}
                                         {<Divider />}
                                         {numberField(
                                             "manual",
                                             "Ideal Minimum pH Level",
-                                            "Please enter a valid pH level",
+                                            validationErrors.minPh ?? "Enter a pH value from 0 to 14.",
                                             minPh,
                                             setMinPh,
-                                            isInvalidMinPh,
+                                            !!validationErrors.minPh,
                                         )}
 
                                         {numberField(
                                             "manual",
                                             "Ideal Maximum pH Level",
-                                            "Please enter a valid pH level",
+                                            validationErrors.maxPh ?? "Enter a pH value from 0 to 14.",
                                             maxPh,
                                             setMaxPh,
-                                            isInvalidMaxPh,
+                                            !!validationErrors.maxPh,
                                         )}
                                         {<Divider />}
                                         {livestockType === "plant" && (
@@ -660,10 +641,10 @@ export default function LivestockFormPage() {
                                                 {numberField(
                                                     "manual",
                                                     "Days in the Nursery",
-                                                    "Please input a valid amount of days",
+                                                    validationErrors.nurseryDays ?? "Enter a whole number greater than zero.",
                                                     nurseryDays,
                                                     setNurseryDays,
-                                                    isInvalidNurseryDays,
+                                                    !!validationErrors.nurseryDays,
                                                     0,
                                                     "This days are for how long the plant should be in the nursery"
                                                 )}
@@ -671,10 +652,10 @@ export default function LivestockFormPage() {
                                                 {numberField(
                                                         "manual",
                                                         "Days until Harvest",
-                                                        "Please input a valid amount of days",
+                                                        validationErrors.harvestDays ?? "Enter a whole number greater than zero.",
                                                         harvestDays,
                                                         setHarvestDays,
-                                                        isInvalidHarvestDays,
+                                                        !!validationErrors.harvestDays,
                                                         0,
                                                         "This days are for how long the plant should stay in the growbed"
                                                 )}
@@ -687,10 +668,10 @@ export default function LivestockFormPage() {
                                                 {numberField(
                                                     "manual",
                                                     "Days it takes to mature",
-                                                    "Please input a valid amount of days",
+                                                    validationErrors.growthDays ?? "Enter a whole number greater than zero.",
                                                     growthDays,
                                                     setGrowthDays,
-                                                    isInvalidGrowthDays,
+                                                    !!validationErrors.growthDays,
                                                     0,
                                                     "This days are for how long it takes for the fish to mature for harvest"
                                                 )}
@@ -698,10 +679,10 @@ export default function LivestockFormPage() {
                                                 {numberField(
                                                     "manual",
                                                     "Current Age in Days",
-                                                    "Please input a valid amount of days",
+                                                    validationErrors.age ?? "Enter a whole number of zero or more.",
                                                     age,
                                                     setAge,
-                                                    isInvalidAge,
+                                                    !!validationErrors.age,
                                                     0,
                                                     "This is the current age of the fish in days"
                                                 )}
@@ -712,7 +693,7 @@ export default function LivestockFormPage() {
 
                                 <Button
                                     onPress={handleSubmit}
-                                    isDisabled={!isFormComplete || onAction}
+                                    isDisabled={onAction || loading}
                                 >
                                     <ButtonText>Create Livestock</ButtonText>
                                 </Button>

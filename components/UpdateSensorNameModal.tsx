@@ -20,6 +20,8 @@ import {
 import { Button, ButtonText } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { CloseIcon, Icon } from "@/components/ui/icon";
+import FieldError from "@/components/FieldError";
+import { FormControl } from "@/components/ui/form-control";
 import { Text } from "@/components/ui/text";
 
 interface UpdateSensorNameModalProps {
@@ -94,6 +96,7 @@ export default function UpdateSensorNameModal({
                         Enter a new name for this sensor.
                     </Text>
 
+                    <FormControl isInvalid={!!error}>
                     <Input>
                         <InputField
                             value={name}
@@ -106,12 +109,8 @@ export default function UpdateSensorNameModal({
                             maxLength={100}
                         />
                     </Input>
-
-                    {error !== "" && (
-                        <Text className="text-red-500 text-sm mt-2">
-                            {error}
-                        </Text>
-                    )}
+                    <FieldError message={error || undefined} />
+                    </FormControl>
                 </ModalBody>
 
                 <ModalFooter>

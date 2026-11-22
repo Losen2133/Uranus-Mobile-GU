@@ -1,14 +1,16 @@
 import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationMember, Role } from "@/interfaces/interfaces";
 import { capitalize } from "@/utils/stringUtils";
+import FieldError from "./FieldError";
+import { validateEmailAddress } from "@/utils/validation";
 import { Picker } from "@react-native-picker/picker";
 import { useEffect, useState } from "react";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "./ui/alert-dialog";
 import { Box } from "./ui/box";
 import { Button, ButtonText } from "./ui/button";
-import { FormControl, FormControlError, FormControlErrorIcon, FormControlErrorText, FormControlLabel, FormControlLabelText } from "./ui/form-control";
+import { FormControl, FormControlLabel, FormControlLabelText } from "./ui/form-control";
 import { Heading } from "./ui/heading";
-import { AlertCircleIcon, CloseIcon, Icon } from "./ui/icon";
+import { CloseIcon, Icon } from "./ui/icon";
 import { Input, InputField } from "./ui/input";
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from "./ui/modal";
 import { Text } from "./ui/text";
@@ -37,7 +39,8 @@ export default function AddMemberModal({
     )
     const { selectedOrganizationId } = useOrganization();
     const [email, setEmail] = useState('');
-    const [isInvalidEmail, setIsInvalidEmail] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState<string>();
     const [addingMember, setAddingMember] = useState(false);
     const [selectedRole, setSelectedRole] = useState<number | undefined>(
         roleList[0]?.id
@@ -52,7 +55,30 @@ export default function AddMemberModal({
         }
 
         setEmail('');
+        setHasSubmitted(false);
+        setSubmitError(undefined);
     }, [isOpen]);
+
+    const emailError = submitError ?? (hasSubmitted ? validateEmailAddress(email) : undefined);
+    const roleError = hasSubmitted && availableRoles.length === 0
+        ? "No roles are available for this account."
+        : hasSubmitted && !availableRoles.some((role) => role.id === selectedRole)
+            ? "Select a role."
+            : undefined;
+
+    const handleAdd = () => {
+        setHasSubmitted(true);
+
+        if (
+            validateEmailAddress(email) ||
+            !availableRoles.some((role) => role.id === selectedRole) ||
+            !selectedOrganizationId
+        ) {
+            return;
+        }
+
+        setConfirmAddMemberVisibile(true);
+    };
 
     return (
         <>
@@ -71,7 +97,7 @@ export default function AddMemberModal({
                     <ModalBody>
                         <VStack space="md">
                             <FormControl
-                                isInvalid={isInvalidEmail}
+                                isInvalid={!!emailError}
                             >
                                 <FormControlLabel>
                                     <FormControlLabelText>Email Address</FormControlLabelText>
@@ -84,24 +110,23 @@ export default function AddMemberModal({
                                         placeholderTextColor={'gray'}
                                         value={email}
                                         autoCapitalize="none"
-                                        onChangeText={(text) => setEmail(text)}
+                                        onChangeText={(value) => {
+                                            setEmail(value);
+                                            setSubmitError(undefined);
+                                        }}
                                     />
                                 </Input>
-                                <FormControlError>
-                                    <FormControlErrorIcon
-                                        as={AlertCircleIcon}
-                                        className='text-destructive'
-                                    />
-                                    <FormControlErrorText className='text-destructive'>
-                                        Please fill out this field
-                                    </FormControlErrorText>
-                                </FormControlError>
+                                <FieldError message={emailError} />
                             </FormControl>
+                            <FormControl isInvalid={!!roleError}>
                             <Box className="border border-outline-300 border-white rounded-md h-12 justify-center px-3">
                                 {availableRoles.length > 0 && (
                                     <Picker
                                         selectedValue={selectedRole}
-                                        onValueChange={setSelectedRole}
+                                        onValueChange={(value) => {
+                                            setSelectedRole(value);
+                                            setSubmitError(undefined);
+                                        }}
                                         dropdownIconColor="white"
                                         style={{
                                             color: "white",
@@ -118,6 +143,8 @@ export default function AddMemberModal({
                                     </Picker>
                                 )}
                             </Box>
+                            <FieldError message={roleError} />
+                            </FormControl>
                         </VStack>
                     </ModalBody>
                     <ModalFooter>
@@ -129,8 +156,8 @@ export default function AddMemberModal({
                             <ButtonText>Cancel</ButtonText>
                         </Button>
                         <Button
-                            onPress={() => setConfirmAddMemberVisibile(true)}
-                            isDisabled={!email || addingMember}
+                            onPress={handleAdd}
+                            isDisabled={addingMember}
                         >
                             <ButtonText>Add</ButtonText>
                         </Button>
@@ -165,17 +192,26 @@ export default function AddMemberModal({
                                 );
 
                                 if (!role || !selectedOrganizationId) {
+                                    setAddingMember(false);
+                                    setHasSubmitted(true);
                                     return;
                                 }
 
-                                setConfirmAddMemberVisibile(false);
-
-                                await onMemberAdded(
-                                    email,
-                                    role.name
-                                );
-                                setAddingMember(false);
+                                try {
+                                    await onMemberAdded(email.trim(), role.name);
+                                    setConfirmAddMemberVisibile(false);
+                                } catch (error) {
+                                    setConfirmAddMemberVisibile(false);
+                                    setSubmitError(
+                                        error instanceof Error
+                                            ? error.message
+                                            : "Could not add this member. Please try again."
+                                    );
+                                } finally {
+                                    setAddingMember(false);
+                                }
                             }}
+                            isDisabled={addingMember}
                         >
                             <ButtonText>Confirm</ButtonText>
                         </Button>

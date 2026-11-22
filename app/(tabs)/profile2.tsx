@@ -1,44 +1,48 @@
 import useAppToast from "@/components/AppToast";
 import { passwordField } from "@/components/FormFields";
+import FieldError from "@/components/FieldError";
 import { Button, ButtonText } from "@/components/ui/button";
+import { FormControl } from "@/components/ui/form-control";
 import { VStack } from "@/components/ui/vstack";
 import { changePassword } from "@/utils/apiFetch";
 import { useState } from "react";
 
 export default function ProfileScreen2() {
     const [currentPassword, setCurrentPassword] = useState<string>('');
-    const [isInvalidCurrentPassword, setIsInvalidCurrentPassword] = useState(false);
-
     const [newPassword, setNewPassword] = useState<string>('');
-    const [isInvalidNewPassword, setIsInvalidNewPassword] = useState(false);
-
     const [confirmPassword, setConfirmPassword] = useState<string>('');
-    const [isInvalidConfirmPassword, setIsInvalidConfirmPassword] = useState(false);
-
     const [changingPassword, setChangingPassword] = useState<boolean>(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [serverError, setServerError] = useState<string>();
 
     const { showToast } = useAppToast();
 
     const isTheSame =
         newPassword === confirmPassword;
 
-    const currentPasswordError =
+    const currentPasswordError = !hasSubmitted
+        ? ""
+        :
         currentPassword.length === 0
-            ? "Please fill out this field"
+            ? "Current password is required."
             : "";
 
-    const newPasswordError =
+    const newPasswordError = !hasSubmitted
+        ? ""
+        :
         newPassword.length === 0
-            ? "Please fill out this field"
+            ? "New password is required."
             : newPassword.length < 8
-                ? "Password must be at least 8 characters"
+                ? "Password must be at least 8 characters."
                 : "";
 
-    const confirmPasswordError =
+    const confirmPasswordError = !hasSubmitted
+        ? ""
+        :
         confirmPassword.length === 0
-            ? "Please fill out this field"
+            ? "Confirm your new password."
             : !isTheSame
-                ? "Passwords do not match"
+                ? "Passwords do not match."
                 : "";
 
     const handleSubmit = async () => {
@@ -52,9 +56,7 @@ export default function ProfileScreen2() {
             confirmPassword.length === 0 ||
             !isTheSame;
 
-        setIsInvalidCurrentPassword(currentPasswordInvalid);
-        setIsInvalidNewPassword(newPasswordInvalid);
-        setIsInvalidConfirmPassword(confirmPasswordInvalid);
+        setHasSubmitted(true);
 
         // Stop here if there are validation errors
         if (
@@ -77,11 +79,8 @@ export default function ProfileScreen2() {
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
-
-            setIsInvalidCurrentPassword(false);
-            setIsInvalidNewPassword(false);
-            setIsInvalidConfirmPassword(false);
-            setChangingPassword(false);
+            setHasSubmitted(false);
+            setServerError(undefined);
 
             showToast({
                 action: 'success',
@@ -99,6 +98,7 @@ export default function ProfileScreen2() {
                 title: 'Failed to Change Password',
                 description: message,
             });
+            setServerError(message);
 
             setChangingPassword(false);
         }
@@ -106,28 +106,39 @@ export default function ProfileScreen2() {
 
     return (
         <VStack space="md" className="p-5">
+            {serverError && (
+                <FormControl isInvalid>
+                    <FieldError message={serverError} />
+                </FormControl>
+            )}
 
             {passwordField(
                 currentPassword,
-                setCurrentPassword,
+                (value) => {
+                    setCurrentPassword(value);
+                    setServerError(undefined);
+                },
                 "Current Password",
-                isInvalidCurrentPassword,
                 currentPasswordError,
             )}
 
             {passwordField(
                 newPassword,
-                setNewPassword,
+                (value) => {
+                    setNewPassword(value);
+                    setServerError(undefined);
+                },
                 "New Password",
-                isInvalidNewPassword,
                 newPasswordError,
             )}
 
             {passwordField(
                 confirmPassword,
-                setConfirmPassword,
+                (value) => {
+                    setConfirmPassword(value);
+                    setServerError(undefined);
+                },
                 "Confirm Password",
-                isInvalidConfirmPassword,
                 confirmPasswordError,
             )}
 

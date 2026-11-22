@@ -12,6 +12,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { LivestockFishTypeData, LivestockPlantTypeData, LivestockProfileData } from "@/interfaces/interfaces";
 import { createLivestockProfile, fetchIndividualLivestockProfile, updateLivestockProfile } from "@/utils/apiFetch";
 import { convertTemperature, TempUnit } from "@/utils/stringUtils";
+import { validateRequiredText, validateWholeNumber } from "@/utils/validation";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
@@ -19,30 +20,24 @@ import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
 export default function LivestockProfileFormPage() {
     const { selectedProfileId } = useLocalSearchParams<{selectedProfileId: string}>();
-    const toEditProfileId = Number(selectedProfileId) ?? undefined;
+    const parsedProfileId = Number(selectedProfileId);
+    const toEditProfileId =
+        Number.isInteger(parsedProfileId) && parsedProfileId > 0
+            ? parsedProfileId
+            : undefined;
     const [toEditProfile, setToEditProfile] = useState<LivestockProfileData>();
     const [loading, setLoading] = useState(!!toEditProfileId);
     const [livestockType, setLivestockType] =  useState<"plant" | "fish">();
     const [speciesName, setSpeciesName] = useState<string | undefined>('');
-    const [isInvalidSpeciesName, setIsInvalidSpeciesName] = useState(false);
     const [description, setDescription] = useState('');
-    const [isInvalidDescription, setIsInvalidDescription] = useState(false);
     const [tempUnit, setTempUnit] = useState<TempUnit>("celcius");
-    const [isInvalidMinTemp, setIsInvalidMinTemp] = useState(false);
     const [minTemp, setMinTemp] = useState<number>();
-    const [isInvalidMaxTemp, setIsInvalidMaxTemp] = useState(false);
     const [maxTemp, setMaxTemp] = useState<number>();
-    const [isInvalidMinPh, setIsInvalidMinPh] = useState(false);
     const [minPh, setMinPh] = useState<number>();
-    const [isInvalidMaxPh, setIsInvalidMaxPh] = useState(false);
     const [maxPh, setMaxPh] = useState<number>();
-    const [isInvalidHarvestDays, setIsInvalidHarvestDays] = useState(false);
     const [harvestDays, setHarvestDays] = useState<number>();
-    const [isInvalidNurseryDays, setIsInvalidNurseryDays] = useState(false);
     const [nurseryDays, setNurseryDays] = useState<number>();
-    const [isInvalidGrowthDays, setIsInvalidGrowthDays] = useState(false);
     const [growthDays, setGrowthDays] = useState<number>();
-    const [isInvalidAge, setIsInvalidAge] = useState(false);
     const [age, setAge] = useState<number>();
     const [isProfileAction, setIsProfileAction] = useState(false);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -52,6 +47,7 @@ export default function LivestockProfileFormPage() {
     const { showToast } = useAppToast();
     const isEditMode = !!toEditProfileId;
     const [fieldMode, setFieldMode] = useState<"manual" | "auto">("manual");
+    const [hasSubmitted, setHasSubmitted] = useState(false);
 
     const temperatureUnitLabel: Record<TempUnit, string> = {
         celcius: "°C",
@@ -288,90 +284,72 @@ export default function LivestockProfileFormPage() {
     //     setAge(undefined);
     // };
 
-    const everythingIsOk = () => {
-        let valid = true;
+    const getValidationErrors = (): Record<string, string> => {
+        const errors: Record<string, string> = {};
+        const descriptionError = validateRequiredText(description, "Description");
 
-        // Reset errors first
-        setIsInvalidDescription(false);
-        setIsInvalidSpeciesName(false);
-        setIsInvalidMinTemp(false);
-        setIsInvalidMaxTemp(false);
-        setIsInvalidMinPh(false);
-        setIsInvalidMaxPh(false);
-        setIsInvalidHarvestDays(false);
-        setIsInvalidNurseryDays(false);
+        if (descriptionError) errors.description = descriptionError;
+        if (!livestockType) errors.livestockType = "Select a livestock type.";
+        if (!speciesName?.trim()) errors.speciesName = "Species name is required.";
 
-        if (!description.trim()) {
-            setIsInvalidDescription(true);
-            valid = false;
-        }
-
-        if (!speciesName?.trim()) {
-            setIsInvalidSpeciesName(true);
-            valid = false;
-        }
-
-        const minTempCelcius = minTemp !== undefined
-            ? convertTemperature(minTemp, tempUnit, "celcius")
-            : undefined;
+        const minTempCelsius = minTemp === undefined
+            ? undefined
+            : convertTemperature(minTemp, tempUnit, "celcius");
+        const maxTempCelsius = maxTemp === undefined
+            ? undefined
+            : convertTemperature(maxTemp, tempUnit, "celcius");
 
         if (
-            minTempCelcius === undefined ||
-            minTempCelcius <= 0 ||
-            minTempCelcius >= 100
+            minTempCelsius === undefined ||
+            !Number.isFinite(minTempCelsius) ||
+            minTempCelsius <= 0 ||
+            minTempCelsius >= 100
         ) {
-            setIsInvalidMinTemp(true);
-            valid = false;
+            errors.minTemp = "Enter a temperature greater than 0°C and less than 100°C.";
         }
-
-        const maxTempCelcius = maxTemp !== undefined
-            ? convertTemperature(maxTemp, tempUnit, "celcius")
-            : undefined;
-
         if (
-            maxTempCelcius === undefined ||
-            maxTempCelcius <= 0 ||
-            maxTempCelcius >= 100
+            maxTempCelsius === undefined ||
+            !Number.isFinite(maxTempCelsius) ||
+            maxTempCelsius <= 0 ||
+            maxTempCelsius >= 100
         ) {
-            setIsInvalidMaxTemp(true);
-            valid = false;
+            errors.maxTemp = "Enter a temperature greater than 0°C and less than 100°C.";
+        } else if (minTempCelsius !== undefined && maxTempCelsius <= minTempCelsius) {
+            errors.maxTemp = "Maximum temperature must be greater than minimum temperature.";
         }
 
-        if (minPh === undefined || minPh < 0 || minPh > 14) {
-            setIsInvalidMinPh(true);
-            valid = false;
+        if (minPh === undefined || !Number.isFinite(minPh) || minPh < 0 || minPh > 14) {
+            errors.minPh = "Enter a pH value from 0 to 14.";
+        }
+        if (maxPh === undefined || !Number.isFinite(maxPh) || maxPh < 0 || maxPh > 14) {
+            errors.maxPh = "Enter a pH value from 0 to 14.";
+        } else if (minPh !== undefined && maxPh <= minPh) {
+            errors.maxPh = "Maximum pH must be greater than minimum pH.";
         }
 
-        if (maxPh === undefined || maxPh < 0 || maxPh > 14) {
-            setIsInvalidMaxPh(true);
-            valid = false;
+        if (livestockType === "plant") {
+            const harvestDaysError = validateWholeNumber(harvestDays, "Harvest days");
+            const nurseryDaysError = validateWholeNumber(nurseryDays, "Nursery days");
+            if (harvestDaysError) errors.harvestDays = harvestDaysError;
+            if (nurseryDaysError) errors.nurseryDays = nurseryDaysError;
         }
 
-        if (livestockType === "plant" && !harvestDays) {
-            setIsInvalidHarvestDays(true);
-            valid = false;
+        if (livestockType === "fish") {
+            const growthDaysError = validateWholeNumber(growthDays, "Growth days");
+            const ageError = validateWholeNumber(age, "Age", true);
+            if (growthDaysError) errors.growthDays = growthDaysError;
+            if (ageError) errors.age = ageError;
         }
 
-        if (livestockType === "plant" && !nurseryDays) {
-            setIsInvalidNurseryDays(true);
-            valid = false;
-        }
-
-        if (livestockType === "fish" && !growthDays) {
-            setIsInvalidGrowthDays(true);
-            valid = false;
-        }
-
-        if (livestockType === "fish" && !age) {
-            setIsInvalidAge(true);
-            valid = false;
-        }
-
-        return valid;
+        return errors;
     };
 
+    const validationErrors = hasSubmitted ? getValidationErrors() : {};
+
     const handleSubmit = () => {
-        if (!everythingIsOk()) {
+        setHasSubmitted(true);
+
+        if (Object.keys(getValidationErrors()).length > 0) {
             return;
         }
 
@@ -379,7 +357,9 @@ export default function LivestockProfileFormPage() {
     };
 
     const handleUpdateProfile = () => {
-        if (!everythingIsOk()) {
+        setHasSubmitted(true);
+
+        if (Object.keys(getValidationErrors()).length > 0) {
             return;
         }
 
@@ -389,20 +369,6 @@ export default function LivestockProfileFormPage() {
 
         setIsProfileAction(true);
     };
-
-    const isFormComplete =
-        livestockType !== undefined &&
-        description.trim().length > 0 &&
-        !!speciesName?.trim() &&
-        minTemp !== undefined &&
-        maxTemp !== undefined &&
-        minPh !== undefined &&
-        maxPh !== undefined &&
-        (
-            livestockType === "fish"
-                ? growthDays !== undefined && age !== undefined
-                : harvestDays !== undefined && nurseryDays !== undefined
-        );
 
     const hasFormChanges = () => {
         if (!toEditProfile) {
@@ -496,7 +462,7 @@ export default function LivestockProfileFormPage() {
                                                 fieldMode,
                                                 speciesName ?? "",
                                                 setSpeciesName,
-                                                isInvalidSpeciesName,
+                                                validationErrors.speciesName,
                                                 "Ex: Tomato"
                                             )}
                                         </>
@@ -508,7 +474,7 @@ export default function LivestockProfileFormPage() {
                                                 fieldMode,
                                                 speciesName ?? "",
                                                 setSpeciesName,
-                                                isInvalidSpeciesName,
+                                                validationErrors.speciesName,
                                                 "Ex: Tilapia"
                                             )}
                                         </>
@@ -517,45 +483,45 @@ export default function LivestockProfileFormPage() {
                                     {livestockDescriptionField(
                                         description,
                                         setDescription,
-                                        isInvalidDescription
+                                        validationErrors.description
                                     )}
                                     {<Divider />}
                                     {numberField(
                                         fieldMode,
                                         `Ideal Minimum Temperature (${currentTemperatureUnit})`,
-                                        `Please enter a valid temperature in ${currentTemperatureUnit}`,
+                                        validationErrors.minTemp ?? "Enter a temperature greater than 0°C and less than 100°C.",
                                         minTemp,
                                         setMinTemp,
-                                        isInvalidMinTemp,
+                                        !!validationErrors.minTemp,
                                         toEditProfile?.data?.ideal_temp?.min ?? 0,
                                     )}
                                     {numberField(
                                         fieldMode,
                                         `Ideal Maximum Temperature (${currentTemperatureUnit})`,
-                                        `Please enter a valid temperature in ${currentTemperatureUnit}`,
+                                        validationErrors.maxTemp ?? "Enter a temperature greater than 0°C and less than 100°C.",
                                         maxTemp,
                                         setMaxTemp,
-                                        isInvalidMaxTemp,
+                                        !!validationErrors.maxTemp,
                                         toEditProfile?.data?.ideal_temp?.max ?? 0,
                                     )}
                                     {<Divider />}
                                     {numberField(
                                         fieldMode,
                                         "Ideal Minimum pH Level",
-                                        "Please enter a valid pH level",
+                                        validationErrors.minPh ?? "Enter a pH value from 0 to 14.",
                                         minPh,
                                         setMinPh,
-                                        isInvalidMinPh,
+                                        !!validationErrors.minPh,
                                         toEditProfile?.data?.ph_range?.min ?? 0,
                                     )}
 
                                     {numberField(
                                         fieldMode,
                                         "Ideal Maximum pH Level",
-                                        "Please enter a valid pH level",
+                                        validationErrors.maxPh ?? "Enter a pH value from 0 to 14.",
                                         maxPh,
                                         setMaxPh,
-                                        isInvalidMaxPh,
+                                        !!validationErrors.maxPh,
                                         toEditProfile?.data?.ph_range?.max ?? 0,
                                     )}
                                     {livestockType === "plant" && (
@@ -563,10 +529,10 @@ export default function LivestockProfileFormPage() {
                                             {numberField(
                                                 fieldMode,
                                                 "Days in the Nursery",
-                                                "Please input a valid amount of days",
+                                                validationErrors.nurseryDays ?? "Enter a whole number greater than zero.",
                                                 nurseryDays,
                                                 setNurseryDays,
-                                                isInvalidNurseryDays,
+                                                !!validationErrors.nurseryDays,
                                                 (toEditProfile?.data as LivestockPlantTypeData)?.nursery_days ?? 0,
                                                 "This days are for how long the plant should be in the nursery"
                                             )}
@@ -574,10 +540,10 @@ export default function LivestockProfileFormPage() {
                                             {numberField(
                                                 fieldMode,
                                                 "Days until Harvest",
-                                                "Please input a valid amount of days",
+                                                validationErrors.harvestDays ?? "Enter a whole number greater than zero.",
                                                 harvestDays,
                                                 setHarvestDays,
-                                                isInvalidHarvestDays,
+                                                !!validationErrors.harvestDays,
                                                 (toEditProfile?.data as LivestockPlantTypeData)?.harvest_days ?? 0,
                                                 "This days are for how long the plant should stay in the growbed"
                                             )}
@@ -588,10 +554,10 @@ export default function LivestockProfileFormPage() {
                                             {numberField(
                                                 fieldMode,
                                                 "Days it takes to mature",
-                                                "Please input a valid amount of days",
+                                                validationErrors.growthDays ?? "Enter a whole number greater than zero.",
                                                 growthDays,
                                                 setGrowthDays,
-                                                isInvalidGrowthDays,
+                                                !!validationErrors.growthDays,
                                                 (toEditProfile?.data as LivestockFishTypeData)?.growth_days ?? 0,
                                                 "This days are for how long it takes for the fish to mature for harvest"
                                             )}
@@ -599,10 +565,10 @@ export default function LivestockProfileFormPage() {
                                             {numberField(
                                                 fieldMode,
                                                 "Current Age in Days",
-                                                "Please input a valid amount of days",
+                                                validationErrors.age ?? "Enter a whole number of zero or more.",
                                                 age,
                                                 setAge,
-                                                isInvalidAge,
+                                                !!validationErrors.age,
                                                 (toEditProfile?.data as LivestockFishTypeData)?.age ?? 0,
                                                 "This is the current age of the fish in days"
                                             )}
@@ -611,7 +577,6 @@ export default function LivestockProfileFormPage() {
                                     {!isEditMode && (
                                         <Button
                                             onPress={handleSubmit}
-                                            isDisabled={!isFormComplete}
                                         >
                                             <ButtonText>Create Profile</ButtonText>
                                         </Button>
@@ -619,7 +584,7 @@ export default function LivestockProfileFormPage() {
                                     {isEditMode && (
                                         <Button
                                             onPress={handleUpdateProfile}
-                                            isDisabled={!isFormComplete || !hasChanges}
+                                            isDisabled={!hasChanges}
                                         >
                                             <ButtonText>Save Edit</ButtonText>
                                         </Button>

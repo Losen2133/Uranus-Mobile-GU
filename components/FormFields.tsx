@@ -2,14 +2,15 @@ import { LivestockProfileData } from "@/interfaces/interfaces"
 import { Picker } from "@react-native-picker/picker"
 import { CalendarDaysIcon, Camera, Image as ImageIcon, RotateCcw } from "lucide-react-native"
 import { Dispatch, SetStateAction } from "react"
+import FieldError from "./FieldError"
 import { Box } from "./ui/box"
 import { Button, ButtonIcon, ButtonText } from "./ui/button"
 import { Center } from "./ui/center"
 import { DateTimePicker, DateTimePickerIcon, DateTimePickerInput, DateTimePickerTrigger } from "./ui/date-time-picker"
-import { FormControl, FormControlError, FormControlErrorIcon, FormControlErrorText, FormControlHelper, FormControlHelperText, FormControlLabel, FormControlLabelText } from "./ui/form-control"
+import { FormControl, FormControlHelper, FormControlHelperText, FormControlLabel, FormControlLabelText } from "./ui/form-control"
 import { Heading } from "./ui/heading"
 import { HStack } from "./ui/hstack"
-import { AlertCircleIcon, ClockIcon, CloseIcon, Icon } from "./ui/icon"
+import { ClockIcon, CloseIcon, Icon } from "./ui/icon"
 import { Image } from "./ui/image"
 import { Input, InputField } from "./ui/input"
 import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalHeader } from "./ui/modal"
@@ -55,7 +56,7 @@ export const logTypeField = (
 
 export const livestockTypeField = (
     livestockType: "plant" | "fish" | undefined,
-    livestockTypeSetter: Dispatch<SetStateAction<"plant" | "fish" | undefined>>,
+    livestockTypeSetter: (livestockType: "plant" | "fish") => void,
     mode: "auto" | "manual"
 ) => {
     return (
@@ -132,9 +133,11 @@ export const notifyField = (
 
 export const frequencyField = (
     frequency: 'daily' | 'weekly' | undefined,
-    frequencySetter: Dispatch<SetStateAction<'daily' | 'weekly' | undefined>>
+    frequencySetter: Dispatch<SetStateAction<'daily' | 'weekly' | undefined>>,
+    errorMessage?: string
 ) => {
     return (
+        <FormControl isInvalid={!!errorMessage}>
         <Box>
             <VStack space="md">
                 <Text className="font-bold">
@@ -164,14 +167,18 @@ export const frequencyField = (
                 </HStack>
             </VStack>
         </Box>
+        <FieldError message={errorMessage} />
+        </FormControl>
     )
 }
 
 export const timePicker = (
   notificationTime: Date | undefined,
-  notificationTimeSetter: Dispatch<SetStateAction<Date | undefined>>
+  notificationTimeSetter: Dispatch<SetStateAction<Date | undefined>>,
+  errorMessage?: string
 ) => {
   return (
+    <FormControl className="w-full" isInvalid={!!errorMessage}>
     <Box className="w-full">
         <VStack space="md">
             <Text className="font-bold">
@@ -191,14 +198,18 @@ export const timePicker = (
             </DateTimePicker>
         </VStack>
     </Box>
+    <FieldError message={errorMessage} />
+    </FormControl>
   );
 };
 
 export const dateTimePicker = (
     scheduledAt: Date | undefined,
-    scheduledAtSetter: Dispatch<SetStateAction<Date | undefined>>
+    scheduledAtSetter: Dispatch<SetStateAction<Date | undefined>>,
+    errorMessage?: string
 ) => {
     return (
+        <FormControl className="w-full" isInvalid={!!errorMessage}>
         <Box className="w-full">
             <VStack space="md">
                 <Text className="font-bold">
@@ -221,6 +232,8 @@ export const dateTimePicker = (
                 </DateTimePicker>
             </VStack>
         </Box>
+        <FieldError message={errorMessage} />
+        </FormControl>
     );
 };
 
@@ -329,11 +342,11 @@ export const imagePickerModal = (
 export const logTitleField = (
     logTitle: string,
     logTitleSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Log Title</FormControlLabelText>
@@ -347,15 +360,7 @@ export const logTitleField = (
                     onChangeText={(text) => logTitleSetter(text)}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -363,11 +368,11 @@ export const logTitleField = (
 export const maintenanceReminderTitleField = (
     maintenanceReminderTitle: string,
     maintenanceReminderTitleSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Maintenance Reminder Title</FormControlLabelText>
@@ -381,15 +386,7 @@ export const maintenanceReminderTitleField = (
                     onChangeText={(text) => maintenanceReminderTitleSetter(text)}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -397,11 +394,11 @@ export const maintenanceReminderTitleField = (
 export const maintenanceReminderDescriptionField = (
     maintenanceReminderDescription: string,
     maintenanceReminderDescriptionSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Description</FormControlLabelText>
@@ -418,15 +415,7 @@ export const maintenanceReminderDescriptionField = (
                             style={{ textAlignVertical: 'top' }}
                         />
                 </Input>
-                <FormControlError>
-                    <FormControlErrorIcon
-                        as={AlertCircleIcon}
-                        className='text-destructive'
-                    />
-                    <FormControlErrorText className='text-destructive'>
-                        Please fill out this field
-                    </FormControlErrorText>
-                </FormControlError>
+                <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -434,11 +423,11 @@ export const maintenanceReminderDescriptionField = (
 export const userNameField = (
     userName: string,
     userNameSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Name</FormControlLabelText>
@@ -452,15 +441,7 @@ export const userNameField = (
                     onChangeText={(text) => userNameSetter(text)}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -469,12 +450,11 @@ export const passwordField = (
     password: string,
     passwordSetter: Dispatch<SetStateAction<string>>,
     label: string,
-    isError: boolean,
     errorMessage: string,
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>{label}</FormControlLabelText>
@@ -488,15 +468,7 @@ export const passwordField = (
                     autoCapitalize="none"
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    {errorMessage}
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -504,11 +476,11 @@ export const passwordField = (
 export const userEmailField = (
     userEmail: string,
     userEmailSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Email</FormControlLabelText>
@@ -524,15 +496,7 @@ export const userEmailField = (
                     onChangeText={(text) => userEmailSetter(text)}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -540,11 +504,11 @@ export const userEmailField = (
 export const livestockNameField = (
     livestockName: string,
     livestockNameSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Livestock Name</FormControlLabelText>
@@ -558,15 +522,7 @@ export const livestockNameField = (
                     onChangeText={(text) => livestockNameSetter(text)}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -574,11 +530,11 @@ export const livestockNameField = (
 export const logDescriptionField = (
     logDescription: string,
     logDescriptionSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Description</FormControlLabelText>
@@ -595,15 +551,7 @@ export const logDescriptionField = (
                             style={{ textAlignVertical: 'top' }}
                         />
                 </Input>
-                <FormControlError>
-                    <FormControlErrorIcon
-                        as={AlertCircleIcon}
-                        className='text-destructive'
-                    />
-                    <FormControlErrorText className='text-destructive'>
-                        Please fill out this field
-                    </FormControlErrorText>
-                </FormControlError>
+                <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -611,11 +559,11 @@ export const logDescriptionField = (
 export const actionTakenField = (
     actionTaken: string | undefined,
     actionTakenSetter: Dispatch<SetStateAction<string | undefined>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Action Taken</FormControlLabelText>
@@ -632,15 +580,7 @@ export const actionTakenField = (
                     style={{ textAlignVertical: 'top' }}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -648,11 +588,11 @@ export const actionTakenField = (
 export const livestockDescriptionField = (
     description: string,
     descriptionSetter: Dispatch<SetStateAction<string>>,
-    isError: boolean
+    errorMessage?: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
         >
             <FormControlLabel>
                 <FormControlLabelText>Description</FormControlLabelText>
@@ -670,15 +610,7 @@ export const livestockDescriptionField = (
                     style={{ textAlignVertical: 'top' }}
                 />
             </Input>
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
     )
 }
@@ -686,9 +618,11 @@ export const livestockDescriptionField = (
 export const useLivestockProfileField = (
     useProfile: boolean | undefined,
     useProfileSetter: Dispatch<SetStateAction<boolean | undefined >>,
-    selectedProfileSetter: Dispatch<SetStateAction<LivestockProfileData | null>>
+    selectedProfileSetter: Dispatch<SetStateAction<LivestockProfileData | null>>,
+    errorMessage?: string
 ) => {
     return (
+        <FormControl isInvalid={!!errorMessage}>
         <Box>
             <VStack space="md">
                 <Text className="font-bold">
@@ -721,14 +655,18 @@ export const useLivestockProfileField = (
                 </HStack>
             </VStack>
         </Box>
+        <FieldError message={errorMessage} />
+        </FormControl>
     )
 }
 
 export const concernSeverityPickerField = (
     concernSeverity: "low" | "moderate" | "high" | "critical" | undefined,
-    concernSevertiySetter: Dispatch<SetStateAction<"low" | "moderate" | "high" | "critical" | undefined>>
+    concernSevertiySetter: Dispatch<SetStateAction<"low" | "moderate" | "high" | "critical" | undefined>>,
+    errorMessage?: string
 ) => {
     return (
+        <FormControl isInvalid={!!errorMessage}>
         <Box>
             <VStack space="md">
                 <Text className="font-bold">
@@ -760,16 +698,18 @@ export const concernSeverityPickerField = (
                 </Box>
             </VStack>
         </Box>
-        
-        
+        <FieldError message={errorMessage} />
+        </FormControl>
     )
 }
 
 export const maintenanceReminderStatusField = (
     maintenanceRemidnerStatus: 'pending' | 'completed' | 'cancelled' | undefined,
-    maintenanceReminderStatusSetter: Dispatch<SetStateAction<'pending' | 'completed' | 'cancelled' | undefined>>
+    maintenanceReminderStatusSetter: Dispatch<SetStateAction<'pending' | 'completed' | 'cancelled' | undefined>>,
+    errorMessage?: string
 ) => {
     return (
+        <FormControl isInvalid={!!errorMessage}>
         <Box>
             <VStack space="md">
                 <Text className="font-bold">
@@ -800,8 +740,8 @@ export const maintenanceReminderStatusField = (
                 </Box>
             </VStack>
         </Box>
-        
-        
+        <FieldError message={errorMessage} />
+        </FormControl>
     )
 }
 
@@ -811,9 +751,11 @@ export const livestockProfilePickerField = (
     selectedProfileSetter: Dispatch<SetStateAction<LivestockProfileData | null>>,
     livestockType: "plant" | "fish",
     livestockProfiles: LivestockProfileData[],
-    applyLivestockProfile: (selectedProfile: LivestockProfileData) => void
+    applyLivestockProfile: (selectedProfile: LivestockProfileData) => void,
+    errorMessage?: string
 ) => {
     return (
+        <FormControl isInvalid={!!errorMessage}>
         <Box>
             <VStack space="md">
                 <Text className="font-bold">
@@ -824,13 +766,16 @@ export const livestockProfilePickerField = (
                     <Picker
                         selectedValue={selectedProfileId}
                         onValueChange={(value) => {
-                            selectedProfileIdSetter(value);
+                            const profileId =
+                                typeof value === "number" ? value : undefined;
+                            selectedProfileIdSetter(profileId);
 
                             const selectedProfile = livestockProfiles.find(
-                                (profile) => profile.id === value
+                                (profile) => profile.id === profileId
                             );
 
                             if (!selectedProfile) {
+                                selectedProfileSetter(null);
                                 return;
                             }
 
@@ -865,6 +810,8 @@ export const livestockProfilePickerField = (
                 </Box>
             </VStack>
         </Box>
+        <FieldError message={errorMessage} />
+        </FormControl>
     )
 }
 
@@ -872,12 +819,12 @@ export const speciesNameField = (
     mode: "auto" | "manual",
     speciesName: string,
     speciesNameSetter: Dispatch<SetStateAction<string | undefined>>,
-    isError: boolean,
+    errorMessage: string | undefined,
     placeholder: string
 ) => {
     return (
         <FormControl
-            isInvalid={isError}
+            isInvalid={!!errorMessage}
             isDisabled={mode === "auto"}
         >
             <FormControlLabel>
@@ -895,15 +842,7 @@ export const speciesNameField = (
                 </Input>
             </HStack>
             
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className='text-destructive'
-                />
-                <FormControlErrorText className='text-destructive'>
-                    Please fill out this field
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={errorMessage} />
         </FormControl>
 
         
@@ -933,9 +872,17 @@ export const numberField = (
                     <InputField
                         keyboardType="numeric"
                         value={value?.toString() ?? ""}
-                        onChangeText={(value) => {
+                        onChangeText={(inputValue) => {
+                            if (inputValue === "") {
+                                valueSetter(undefined);
+                                return;
+                            }
+
+                            const parsedValue = Number(inputValue);
                             valueSetter(
-                                value === "" ? undefined : Number(value)
+                                Number.isFinite(parsedValue)
+                                    ? parsedValue
+                                    : undefined
                             );
                         }}
                     />
@@ -954,15 +901,7 @@ export const numberField = (
                 </FormControlHelper>
             )}
             
-            <FormControlError>
-                <FormControlErrorIcon
-                    as={AlertCircleIcon}
-                    className="text-destructive"
-                />
-                <FormControlErrorText>
-                    {errorText}
-                </FormControlErrorText>
-            </FormControlError>
+            <FieldError message={isError ? errorText : undefined} />
         </FormControl>
     );
 };

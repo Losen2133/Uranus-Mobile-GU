@@ -142,15 +142,16 @@ export default function OrganizationsScreen() {
             await handleFetchOrganizations();
 
         } catch (error) {
-            setOpenOrgModal(false);
-            setEditMode(false);
-
             showToast({
                 action: "error",
                 title: "Organization Action Failed",
                 description:
-                    "Failed to process action, please try again later."
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to process action, please try again later."
             });
+
+            throw error;
         }
     };
 

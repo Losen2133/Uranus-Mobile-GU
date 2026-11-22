@@ -20,19 +20,42 @@ export default function DeleteAccountModal ({
     password,
     setPassword
 }: DeleteAccountModalProps) {
-    const [isInvalidPassword, setIsInvalidPassword] = useState(false);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [serverError, setServerError] = useState<string>();
 
     useEffect(() => {
         if (isOpen) {
             setPassword("");
-            setIsInvalidPassword(false);
+            setHasSubmitted(false);
+            setServerError(undefined);
         }
     }, [isOpen]);
 
-    const passwordError =
-        password.length === 0
-            ? "Please fill out this field"
-            : "";
+    const passwordError = serverError ?? (
+        hasSubmitted && !password.trim()
+            ? "Password is required."
+            : ""
+    );
+
+    const handleAction = async () => {
+        setHasSubmitted(true);
+
+        if (!password.trim()) {
+            return;
+        }
+
+        setServerError(undefined);
+
+        try {
+            await onAction();
+        } catch (error) {
+            setServerError(
+                error instanceof Error
+                    ? error.message
+                    : "Could not delete the account. Please try again."
+            );
+        }
+    };
 
     return (
         <>
@@ -53,14 +76,16 @@ export default function DeleteAccountModal ({
                     <ModalBody>
                         {passwordField(
                             password,
-                            setPassword,
+                            (value) => {
+                                setPassword(value);
+                                setServerError(undefined);
+                            },
                             "Password",
-                            isInvalidPassword,
                             passwordError,
                         )}
                     </ModalBody>
                     <ModalFooter>
-                        <Button onPress={() => onAction()} isDisabled={password.length === 0}>
+                        <Button onPress={handleAction}>
                             <ButtonText className="text-red-500">Delete</ButtonText>
                         </Button>
                     </ModalFooter>

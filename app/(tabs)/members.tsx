@@ -117,18 +117,15 @@ export default function MembersScreen() {
             await handleFetchMembers();
 
         } catch (error) {
-            // const message =
-            //     error instanceof Error
-            //         ? error.message
-            //         : String(error);
-
-            setIsAddMember(false);
-
             showToast({
                 action: "error",
                 title: "Failed to Add Member",
-                description: "Failed to add member, please try again later.",
+                description: error instanceof Error
+                    ? error.message
+                    : "Failed to add member, please try again later.",
             });
+
+            throw error;
         }
     };
 
