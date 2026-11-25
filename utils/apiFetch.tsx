@@ -1,4 +1,4 @@
-import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SelectedOrgDashboardData, SensorData, SensorMaintenanceReminderData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
+import { LivestockData, LivestockLogData, LivestockProfileData, OrganizationDashboardData, OrganizationData, OrganizationMember, Role, SelectedOrgDashboardData, SensorData, SensorDeviceCommandData, SensorDeviceCommandName, SensorMaintenanceReminderData, UserData, UserOrgRoleResponse, UserSettings } from "@/interfaces/interfaces";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
@@ -1824,6 +1824,91 @@ export async function fetchSensorData(
     const json = await response.json();
 
     sensorSetter(json.data);
+}
+
+export async function sendSensorDeviceCommand(
+    selectedOrganizationId: number,
+    sensorId: number,
+    command: SensorDeviceCommandName,
+    parameters: { seconds?: number } = {},
+): Promise<SensorDeviceCommandData> {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error("No authorization token found. Please log in.");
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/commands`,
+        {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ command, parameters }),
+        },
+    );
+    const data: {
+        data?: SensorDeviceCommandData;
+        message?: string;
+    } = await response.json();
+
+    if (response.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? "Failed to send the device command.");
+    }
+
+    if (!data.data) {
+        throw new Error("The server returned an invalid command response.");
+    }
+
+    return data.data;
+}
+
+export async function fetchSensorDeviceCommand(
+    selectedOrganizationId: number,
+    sensorId: number,
+    commandId: number,
+): Promise<SensorDeviceCommandData> {
+    const token = await SecureStore.getItemAsync("userToken");
+
+    if (!token) {
+        throw new Error("No authorization token found. Please log in.");
+    }
+
+    const response = await fetch(
+        `${URANUS_URL}/api/organizations/${selectedOrganizationId}/sensors/${sensorId}/commands/${commandId}`,
+        {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        },
+    );
+    const data: {
+        data?: SensorDeviceCommandData;
+        message?: string;
+    } = await response.json();
+
+    if (response.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+    }
+
+    if (!response.ok) {
+        throw new Error(data.message ?? "Failed to check the device command.");
+    }
+
+    if (!data.data) {
+        throw new Error("The server returned an invalid command status.");
+    }
+
+    return data.data;
 }
 
 export async function logoutUser(pushToken: string | null) {

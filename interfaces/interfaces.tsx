@@ -318,6 +318,20 @@ export interface SensorData {
   maintenance_reminders_count: number;
 }
 
+export type SensorDeviceCommandName =
+  | "request_status"
+  | "restart"
+  | "set_publish_interval"
+  | "calibrate_base"
+  | "calibrate_full"
+  | "factory_reset";
+
+export interface SensorDeviceCommandData {
+  id: number;
+  status: "pending" | "succeeded" | "failed" | "timed_out";
+  response: { message?: string } | null;
+}
+
 export interface SensorMaintenanceReminderData {
   id: number;
   sensor_id: number;

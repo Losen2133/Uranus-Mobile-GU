@@ -1,6 +1,7 @@
 import useAppToast from "@/components/AppToast";
 import EmptyState from "@/components/EmptyState";
 import SelectOrgDisplay from "@/components/SelectOrgDisplay";
+import SensorDeviceCommandsModal from "@/components/SensorDeviceCommandsModal";
 import SkeletonLoading from "@/components/SkeletonLoading";
 import { AlertDialog, AlertDialogBackdrop, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
 import { Box } from "@/components/ui/box";
@@ -25,7 +26,7 @@ import { SensorData } from "@/interfaces/interfaces";
 import { deleteSensor, fetchSensorData, updateSensor } from "@/utils/apiFetch";
 import { Picker } from "@react-native-picker/picker";
 import { useFocusEffect, useRouter } from "expo-router";
-import { EllipsisVertical, Pencil, SearchIcon, Unlink } from "lucide-react-native";
+import { EllipsisVertical, Pencil, SearchIcon, Settings, Unlink } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import {
     KeyboardAvoidingView,
@@ -68,6 +69,7 @@ export default function SensorsScreen() {
     const { famOpacity, setFamOpacity } = useFam();
     const { showToast } = useAppToast();
     const [selectedSensor, setSelectedSensor] = useState<SensorData | null>(null);
+    const [deviceCommandsSensor, setDeviceCommandsSensor] = useState<SensorData | null>(null);
     const [editSensor, setEditSensor] = useState(false);
     const [isDeleteSensor, setIsDeleteSensor] = useState(false);
     const [sensorActionLoading, setSensorActionLoading] = useState(false);
@@ -408,6 +410,17 @@ export default function SensorsScreen() {
                                             )}
                                         >
                                             <MenuItem
+                                                key="device-commands"
+                                                textValue="Device Commands"
+                                                disabled={!item.device_id}
+                                                onPress={() => setDeviceCommandsSensor(item)}
+                                            >
+                                                <Icon as={Settings} size="sm" className="mr-2" />
+                                                <MenuItemLabel>
+                                                    Device Commands
+                                                </MenuItemLabel>
+                                            </MenuItem>
+                                            <MenuItem
                                                 key="edit"
                                                 textValue="Edit Sensor Name"
                                                 onPress={() => {
@@ -465,6 +478,14 @@ export default function SensorsScreen() {
                             handleUpdateSensorName(newName);
                         }}
                     />
+                    {deviceCommandsSensor && selectedOrganizationId && (
+                        <SensorDeviceCommandsModal
+                            visible
+                            organizationId={selectedOrganizationId}
+                            sensor={deviceCommandsSensor}
+                            onClose={() => setDeviceCommandsSensor(null)}
+                        />
+                    )}
                     <AlertDialog
                         isOpen={isDeleteSensor}
                         onClose={() => setIsDeleteSensor(false)}
