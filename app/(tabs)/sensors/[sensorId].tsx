@@ -68,6 +68,7 @@ export default function SensorReadingPage() {
 
             if (selectedOrganizationId && selectedSensorId) {
                 setIsWebViewLoading(true);
+                setChartLink(undefined);
 
                 fetchSensorChartLink(
                     setLoading,
@@ -81,7 +82,7 @@ export default function SensorReadingPage() {
             return () => {
                 ScreenOrientation.unlockAsync();
             };
-        }, [selectedOrganizationId])
+        }, [selectedOrganizationId, selectedSensorId])
     );
 
     useEffect(() => {
